@@ -1,0 +1,69 @@
+@startuml
+
+hide footbox
+title classes
+skinparam monochrome true
+
+class MainActivity {
+  -List<Photo> photoIndex
+}
+MainActivity -- PhotoIndexPopulator : > fetch/refresh metadata\nfor all available photos
+MainActivity -- ImageRepository : > provides\nimages
+MainActivity -- FlickrClient : > login
+MainActivity -- Display : > show next photo
+MainActivity -- Photo
+
+class ImageRepository {
+  -Map<Photo.id, Image> cache
+  -HttpClient httpClient
+  +fetch(Photo photo)
+}
+
+class PhotoIndexPopulator {
+  +fillPhotoIndex(List<Photo> photoIndex)
+}
+PhotoIndexPopulator -- ShowPlanner : > choose and order\nnext photos
+PhotoIndexPopulator -- FlickrClient : > retrieve photo metadata
+
+class FlickrClient {
+  -String accessToken
+  -String appId
+  -String appSecret
+  +login()
+  +getContacts()
+  +getPhotos(userId)
+  +getMetadata(photoId)
+}
+
+class ShowPlanner {
+  +chooseAndOrderPhotos(List<Photo> photoIndex)
+}
+
+class Display {
+  -int DELAY
+  +showNext(Photo photo, Image image)
+}
+
+class Photo {
+  -String id
+  -String secret
+  -String farmId
+  -String serverId
+}
+Photo -- PhotoMetadata : metadata
+Photo -- Contact : takenBy
+
+class PhotoMetadata {
+  -Date dateTaken
+  -String comments
+  -String tags
+}
+
+class Contact {
+  -String userId
+  -String name
+  -boolean isFamily
+  -boolean isFriend
+}
+
+@enduml
