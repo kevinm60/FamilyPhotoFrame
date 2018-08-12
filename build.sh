@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo -ne "\n\ncompiling\n"
-./gradlew clean build
+gradle clean build
 if [[ $? -ne 0 ]]; then
     echo "compile failed"
     exit
@@ -19,10 +19,10 @@ if [[ $? -ne 0 ]]; then
 fi
 
 echo -ne "transfer successful, opening app\n"
-adb shell am start -n app.familyphotoframe/.MainActivity
+adb shell am start -n app.familyphotoframe/.LoginActivity
 
 # echo -ne "\n\nclearing log\n"
-# adb logcat -c
+adb logcat -c
 
 # echo -ne "\n\nreading log\n"
-# adb logcat *:E MainActivity:I
+adb logcat *:E LoginActivity:I PhotoFrameActivity:I FlickrClient:I PhotoCollection:I ShowPlanner:I Display:I

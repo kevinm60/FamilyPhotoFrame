@@ -3,8 +3,13 @@ package app.familyphotoframe.model;
 public class Contact {
     private String userId;
     private String name;
-    private boolean friend;
-    private boolean family;
+    private Relationship relationship;
+
+    public Contact(final String userId, final String name, final Relationship relationship) {
+        this.userId = userId;
+        this.name = name;
+        this.relationship = relationship;
+    }
 
     public String getUserId() {
         return userId;
@@ -20,17 +25,26 @@ public class Contact {
         this.name = name;
     }
 
-    public boolean isFriend() {
-        return friend;
+    public Relationship getRelationship() {
+        return relationship;
     }
-    public void setIsFriend(final boolean friend) {
-        this.friend = friend;
+    public void setRelationship(final Relationship relationship) {
+        this.relationship = relationship;
     }
 
-    public boolean isFamily() {
-        return family;
+    public String toString() {
+        return userId + " " + name;
     }
-    public void setIsFamily(final boolean family) {
-        this.family = family;
+
+    public boolean equals(Object other) {
+        if (!(other instanceof Contact)) {
+            return false;
+        }
+        Contact otherContact = (Contact) other;
+        return this.userId.equals(otherContact.userId);
+    }
+
+    public int hashCode() {
+        return userId.hashCode();
     }
 }

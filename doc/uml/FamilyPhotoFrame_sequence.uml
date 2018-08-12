@@ -5,67 +5,59 @@ title high level sequence
 skinparam monochrome true
 
 participant MainActivity
-participant ImageRepository
-participant PhotoIndexPopulator
+participant PhotoFrameActivity
+participant PhotoCollection
+participant PhotoCollection
 participant FlickrClient
 participant ShowPlanner
 participant Display
 
-alt first startup
-  MainActivity -> FlickrClient : do login stuff
-    activate FlickrClient
-    deactivate FlickrClient
+MainActivity -> FlickrClient : run login flow
+  activate FlickrClient
+  deactivate FlickrClient
+
+MainActivity -\ PhotoFrameActivity : start
+  activate PhotoFrameActivity
+  destroy MainActivity
+
+alt after n hours
+  PhotoFrameActivity -> PhotoCollection : startDiscovery()
+  activate PhotoCollection
+    PhotoCollection -> FlickrClient : get profile
+      activate FlickrClient
+      deactivate FlickrClient
+    PhotoCollection -> FlickrClient : get contacts
+      activate FlickrClient
+      deactivate FlickrClient
+    PhotoCollection -> FlickrClient : get photos for each contact
+      activate FlickrClient
+      deactivate FlickrClient
+    PhotoCollection -> FlickrClient : get date for each photo,\nunless the photo is cached
+      activate FlickrClient
+      deactivate FlickrClient
+  deactivate PhotoCollection
 end
 
-loop
-  alt if there are fewer than MIN_INDEX_SIZE items in the photo index
-    MainActivity -\ PhotoIndexPopulator : fill photo index
-    activate PhotoIndexPopulator
-      PhotoIndexPopulator -> FlickrClient : get contacts
-        activate FlickrClient
-        deactivate FlickrClient
-      PhotoIndexPopulator -> FlickrClient : get photos for each contact\n(concurrent)
-        activate FlickrClient
-        deactivate FlickrClient
-      PhotoIndexPopulator -> FlickrClient : get date for each photo,\nunless the photo is cached\n(concurrent)
-        activate FlickrClient
-        deactivate FlickrClient
-      PhotoIndexPopulator -> ShowPlanner : choose photos to show for the next hour,\norder them
-        activate ShowPlanner
-        deactivate ShowPlanner
-      PhotoIndexPopulator -> PhotoIndexPopulator : append ordered photos to the photo index
-        activate PhotoIndexPopulator
-        deactivate PhotoIndexPopulator
-    deactivate PhotoIndexPopulator
-  end
+PhotoFrameActivity -> Display : run
+  activate Display
+    loop
+      alt if there are fewer than MIN_INDEX_SIZE items in the queue
+        Display -> ShowPlanner : choose photos to show for the next hour\norder them\nadd to queue
+          activate ShowPlanner
+          ShowPlanner -> PhotoCollection : get / choose
+            activate PhotoCollection
+            deactivate PhotoCollection
+          deactivate ShowPlanner
+      end
 
-  MainActivity -> ImageRepository : prune cache
-    activate ImageRepository
-    deactivate ImageRepository
-note right
-remove images from cache for photos not likely to come up again soon
-end note
-  MainActivity -\ ImageRepository : make sure the next MIN_PREFETCH_COUNT images\nhave been fetched
-    activate ImageRepository
-    ImageRepository -> ImageRepository : check cache
-      activate ImageRepository
-      deactivate ImageRepository
-    ImageRepository -> ImageRepository : if not in cache,\nfetch image (simple http request),\nstore in cache
-      activate ImageRepository
-      deactivate ImageRepository
-    deactivate ImageRepository
+      Display -> Display : pop photo at head queue\nshow it\nfetch new photo at head of queue
+        activate Display
+        deactivate Display
 
-  MainActivity -> MainActivity : wait if fetch of the next image\nhasn't completed yet
-    activate MainActivity
-    deactivate MainActivity
-  MainActivity -> ImageRepository : get next photo
-    activate ImageRepository
-    deactivate ImageRepository
-  MainActivity -> Display : show next photo
-    activate Display
-    deactivate Display
-  MainActivity -> MainActivity : wait DELAY secs
-    activate MainActivity
-    deactivate MainActivity
-end
+      Display -> Display : schedule run to be called after FRAME_DURATION
+        activate Display
+        deactivate Display
+    end
+  deactivate Display
+
 @enduml
