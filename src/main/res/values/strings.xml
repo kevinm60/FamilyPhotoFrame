@@ -2,8 +2,13 @@
 <resources>
 
     <string name="app_name">FamilyPhotoFrame</string>
-    <string name="hello_msg">Hello Android</string>
-    <string name="menu_settings">Settings</string>
-    <string name="title_activity_main">MainActivity</string>
+    <string name="menu_settings">settings</string>
+
+    <string name="login_mesg">you must login to your Flickr account to access your photos.</string>
+    <string name="login_button">login</string>
+    <string name="login_success">flickr login successful</string>
+    <string name="login_failed">flickr login failed</string>
+
+    <string name="hello_msg">hello</string>
 
 </resources>

@@ -4,66 +4,78 @@ hide footbox
 title classes
 skinparam monochrome true
 
-class MainActivity {
-  -List<Photo> photoIndex
+class LoginActivity {
 }
-MainActivity -- PhotoIndexPopulator : > fetch/refresh metadata\nfor all available photos
-MainActivity -- ImageRepository : > provides\nimages
-MainActivity -- FlickrClient : > login
-MainActivity -- Display : > show next photo
-MainActivity -- Photo
+LoginActivity -- FlickrClient : > login
+LoginActivity -- PhotoFrameActivity : > starts
 
-class ImageRepository {
-  -Map<Photo.id, Image> cache
-  -HttpClient httpClient
-  +fetch(Photo photo)
+class PhotoFrameActivity {
+  +startShow()
 }
+PhotoFrameActivity -- PhotoCollection : > fetch/refresh metadata\nfor all available photos
+PhotoFrameActivity -- Display : > start
 
-class PhotoIndexPopulator {
-  +fillPhotoIndex(List<Photo> photoIndex)
+class PhotoCollection {
+  -Set<Photo> photos
+  -Set<Contact> contacts
+  +discovery*()
+  +getRecentPhotosBy(contact) :Set<Photo>
+  +getOldPhotosBy(contact) :Set<Photo>
+  +getAllContacts() :List<Contact>
 }
-PhotoIndexPopulator -- ShowPlanner : > choose and order\nnext photos
-PhotoIndexPopulator -- FlickrClient : > retrieve photo metadata
+FlickrClient -- PhotoCollection : < retrieve photo\nmetadata
+PhotoCollection -- Photo
+PhotoCollection -- Contact
 
 class FlickrClient {
   -String accessToken
   -String appId
   -String appSecret
-  +login()
-  +getContacts()
-  +getPhotos(userId)
-  +getMetadata(photoId)
+  +lookupProfile()
+  +lookupContacts()
+  +lookupPhotos(userId)
+  +lookupPhotoMetadata(photo)
 }
 
 class ShowPlanner {
+  -config
   +chooseAndOrderPhotos(List<Photo> photoIndex)
 }
+ShowPlanner - PhotoCollection : > choose photos
 
-class Display {
-  -int DELAY
-  +showNext(Photo photo, Image image)
+class Display <<Runnable>> {
+  -FRAME_DURATION :int
+  -MIN_QUEUE_SIZE :int
+  -LinkedList<Photo> photoQueue
+  -isQueueLow()
+  +run()
 }
+Display - ShowPlanner : > choose\nnext photos
+Display -- Photo
 
 class Photo {
   -String id
   -String secret
   -String farmId
   -String serverId
-}
-Photo -- PhotoMetadata : metadata
-Photo -- Contact : takenBy
-
-class PhotoMetadata {
   -Date dateTaken
+  -Contact owner
   -String comments
   -String tags
 }
+Photo - Contact
 
 class Contact {
   -String userId
   -String name
-  -boolean isFamily
-  -boolean isFriend
+  -Relationship relationship
+}
+Contact -- Relationship
+
+enum Relationship {
+  SELF,
+  FAMILY,
+  FRIEND
 }
 
 @enduml

@@ -6,9 +6,20 @@ import java.util.Date;
 public class Photo {
     private String id;
     private String secret;
+    private String farmId;
     private String serverId;
-    private PhotoMetadata metadata;
-    private Contact takenBy;
+    private Contact owner;
+    private Date dateTaken;
+    private List<String> comments;
+    private List<String> tags;
+
+    public Photo(final String id, final String secret, final String serverId, final String farmId, final Contact owner) {
+        this.id = id;
+        this.secret = secret;
+        this.serverId = serverId;
+        this.farmId = farmId;
+        this.owner = owner;
+    }
 
     public String getId() {
         return id;
@@ -24,6 +35,13 @@ public class Photo {
         this.secret = secret;
     }
 
+    public String getFarmId() {
+        return farmId;
+    }
+    public void setFarmId(final String farmId) {
+        this.farmId = farmId;
+    }
+
     public String getServerId() {
         return serverId;
     }
@@ -31,17 +49,49 @@ public class Photo {
         this.serverId = serverId;
     }
 
-    public PhotoMetadata getMetadata() {
-        return metadata;
+    public Contact getOwner() {
+        return owner;
     }
-    public void setMetadata(final PhotoMetadata metadata) {
-        this.metadata = metadata;
+    public void setOwner(final Contact owner) {
+        this.owner = owner;
     }
 
-    public Contact getTakenBy() {
-        return takenBy;
+    public Date getDateTaken() {
+        return dateTaken;
     }
-    public void setTakenBy(final Contact takenBy) {
-        this.takenBy = takenBy;
+    public void setDateTaken(final Date dateTaken) {
+        this.dateTaken = dateTaken;
+    }
+
+    public List<String> getComments() {
+        return comments;
+    }
+    public void setComments(final List<String> comments) {
+        this.comments = comments;
+    }
+
+    public List<String> getTags() {
+        return tags;
+    }
+    public void setTags(final List<String> tags) {
+        this.tags = tags;
+    }
+
+    public String getUrl() {
+        return String.format("https://farm%s.staticflickr.com/%s/%s_%s.jpg",
+                             farmId, serverId, id, secret);
+    }
+
+    public boolean equals(Object other) {
+        if (!(other instanceof Photo)) {
+            return false;
+        }
+
+        Photo otherPhoto = (Photo) other;
+        return this.id.equals(otherPhoto.id);
+    }
+
+    public int hashCode() {
+        return id.hashCode();
     }
 }

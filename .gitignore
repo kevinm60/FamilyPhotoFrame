@@ -1,3 +1,6 @@
 build
 doc/keys.sh
+doc/notes.org
+src/main/res/values/keys.xml
 doc/uml/*.png
+.gradle
