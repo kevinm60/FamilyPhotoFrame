@@ -12,7 +12,7 @@ fi
 #$ANDROID_HOME/build-tools/20.0.0/zipalign -v 4 build/outputs/apk/familyphotoframe-release-unsigned.apk build/outputs/apk/familyphotoframe-release.apk
 
 echo -ne "\n\ntransferring to device\n"
-adb install -r build/outputs/apk/familyphotoframe-debug.apk
+adb install -r build/outputs/apk/FamilyPhotoFrame-debug.apk
 if [[ $? -ne 0 ]]; then
     echo -ne "transfer failed\n"
     exit

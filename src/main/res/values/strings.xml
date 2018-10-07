@@ -3,6 +3,7 @@
 
     <string name="app_name">FamilyPhotoFrame</string>
     <string name="menu_settings">settings</string>
+    <string name="action_logout">logout</string>
 
     <string name="login_mesg">you must login to your Flickr account to access your photos.</string>
     <string name="login_button">login</string>

@@ -70,6 +70,10 @@ public class FlickrClient extends OAuthBaseClient {
         Log.i("FlickrClient", "created");
     }
 
+    public void logout() {
+        clearAccessToken();
+    }
+
     public void lookupProfile(final PhotoCollection photoCollection) {
         RequestParams params = makeRequestParams();
         params.put("method", "flickr.test.login");

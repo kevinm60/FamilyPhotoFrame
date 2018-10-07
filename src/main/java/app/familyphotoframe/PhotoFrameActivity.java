@@ -11,6 +11,9 @@ import android.os.Bundle;
 import android.util.Log;
 import android.content.Intent;
 import android.view.View;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.MenuInflater;
 
 import com.codepath.oauth.OAuthBaseClient;
 import com.bumptech.glide.Glide;
@@ -25,7 +28,7 @@ import app.familyphotoframe.slideshow.ShowPlanner;
  */
 public class PhotoFrameActivity extends Activity {
 
-    private FlickrClient flickrClient;
+    private FlickrClient flickr;
     private PhotoCollection photoCollection;
     private ShowPlanner showPlanner;
     private Display display;
@@ -39,7 +42,7 @@ public class PhotoFrameActivity extends Activity {
         setContentView(R.layout.activity_photo_frame);
         hideSystemUI();
 
-        FlickrClient flickr = (FlickrClient) OAuthBaseClient.getInstance(FlickrClient.class, getApplicationContext());
+        flickr = (FlickrClient) OAuthBaseClient.getInstance(FlickrClient.class, getApplicationContext());
         photoCollection = new PhotoCollection(this, flickr);
 
         showPlanner = new ShowPlanner(photoCollection);
@@ -72,5 +75,29 @@ public class PhotoFrameActivity extends Activity {
                                         // Hide the nav bar and status bar
                                         | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                                         | View.SYSTEM_UI_FLAG_FULLSCREEN);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.main_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        Log.i("PhotoFrameActivity", "menu selected");
+        switch (item.getItemId()) {
+        case R.id.action_logout:
+            logout();
+            return true;
+        default:
+            return super.onOptionsItemSelected(item);
+        }
+    }
+
+    public void logout() {
+        Log.i("PhotoFrameActivity", "logout selected");
+        flickr.logout();
     }
 }
