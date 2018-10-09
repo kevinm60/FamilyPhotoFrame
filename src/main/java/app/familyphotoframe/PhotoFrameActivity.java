@@ -1,6 +1,8 @@
 package app.familyphotoframe;
 
 import java.util.ArrayList;
+import java.util.Set;
+import java.util.HashSet;
 import java.io.File;
 
 import android.content.res.Resources;
@@ -8,12 +10,14 @@ import android.content.res.Resources;
 import android.app.Activity;
 import android.widget.ImageView;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.content.Intent;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MenuInflater;
+import android.view.MotionEvent;
 
 import com.codepath.oauth.OAuthBaseClient;
 import com.bumptech.glide.Glide;
@@ -32,6 +36,8 @@ public class PhotoFrameActivity extends Activity {
     private PhotoCollection photoCollection;
     private ShowPlanner showPlanner;
     private Display display;
+    private Handler hideUiHandler;
+    private Set<ReHideSystemUiTask> hideUiTasks;
 
     /**
      * instantiate photoCollection, showPlanner, display, then start discovery.
@@ -40,6 +46,10 @@ public class PhotoFrameActivity extends Activity {
         super.onCreate(savedInstanceState);
         Log.i("PhotoFrameActivity", "created");
         setContentView(R.layout.activity_photo_frame);
+
+        hideUiHandler = new Handler();
+        hideUiTasks = new HashSet<>();
+
         hideSystemUI();
 
         flickr = (FlickrClient) OAuthBaseClient.getInstance(FlickrClient.class, getApplicationContext());
@@ -66,10 +76,9 @@ public class PhotoFrameActivity extends Activity {
     private void hideSystemUI() {
         View decorView = getWindow().getDecorView();
         decorView.setSystemUiVisibility(
-                                        View.SYSTEM_UI_FLAG_IMMERSIVE
                                         // Set the content to appear under the system bars so that the
                                         // content doesn't resize when the system bars hide and show.
-                                        | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                                        View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                                         | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                                         | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
                                         // Hide the nav bar and status bar
@@ -96,8 +105,31 @@ public class PhotoFrameActivity extends Activity {
         }
     }
 
-    public void logout() {
+    private void logout() {
         Log.i("PhotoFrameActivity", "logout selected");
         flickr.logout();
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        if (event.getAction() != MotionEvent.ACTION_UP) {
+            return true;
+        }
+        // Log.i("PhotoFrameActivity", "touch event: " + event);
+        for (ReHideSystemUiTask task : hideUiTasks) {
+            hideUiHandler.removeCallbacks(task);
+        }
+        ReHideSystemUiTask task = new ReHideSystemUiTask();
+        hideUiTasks.add(task);
+        hideUiHandler.postDelayed(task, 5000L);
+        return true;
+    }
+
+    class ReHideSystemUiTask implements Runnable {
+        public void run() {
+            // Log.i("PhotoFrameActivity", "rehide system ui now");
+            hideUiTasks.remove(this);
+            hideSystemUI();
+        }
     }
 }
