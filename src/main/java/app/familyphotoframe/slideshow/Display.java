@@ -5,9 +5,13 @@ import android.util.Log;
 import android.app.Activity;
 import android.widget.ImageView;
 import android.os.Handler;
+import android.view.View;
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.RequestOptions;
-import com.bumptech.glide.load.resource.bitmap.BitmapTransitionOptions;
+import com.bumptech.glide.request.RequestListener;
 
 import app.familyphotoframe.model.Photo;
 
@@ -15,19 +19,28 @@ import app.familyphotoframe.model.Photo;
  * this is the slideshow thread.
  */
 public class Display implements Runnable {
-    private int MIN_QUEUE_SIZE = 3;
-    private int FRAME_DURATION = 10000; // 10 secs
-    private int CROSS_FADE_DURATION = 1000;
+    final private int MIN_QUEUE_SIZE = 3;
+    final private int FRAME_DURATION = 10000; // 10 secs
+    final private int FADE_DURATION;
 
-    private Activity photoFrameActivity;
-    private ImageView photoView;
-    private ShowPlanner showPlanner;
-    private LinkedList<Photo> photoQueue = new LinkedList<>();
+    final private Activity photoFrameActivity;
+    final private ShowPlanner showPlanner;
+    final private LinkedList<Photo> photoQueue = new LinkedList<>();
+    final private ImageView photoViewA;
+    final private ImageView photoViewB;
+    private ImageView currentPhotoView;
+    private ImageView nextPhotoView;
 
-    public Display(final Activity photoFrameActivity, final ImageView photoView, final ShowPlanner showPlanner) {
+    public Display(final Activity photoFrameActivity, final ImageView photoViewA, final ImageView photoViewB,
+                   final ShowPlanner showPlanner) {
         this.photoFrameActivity = photoFrameActivity;
-        this.photoView = photoView;
+        this.photoViewA = photoViewA;
+        this.photoViewB = photoViewB;
+        photoViewB.setVisibility(View.GONE);
+        this.currentPhotoView = photoViewA;
+        this.nextPhotoView = photoViewB;
         this.showPlanner = showPlanner;
+        FADE_DURATION = photoFrameActivity.getResources().getInteger(android.R.integer.config_longAnimTime);
     }
 
     @Override
@@ -44,11 +57,12 @@ public class Display implements Runnable {
         RequestOptions options = new RequestOptions()
             .fitCenter();
         Glide.with(photoFrameActivity)
-            .asBitmap()
             .load(nextPhoto.getUrl())
             .apply(options)
-            .transition(BitmapTransitionOptions.withCrossFade(CROSS_FADE_DURATION))
-            .into(photoView);
+            .into(nextPhotoView);
+
+        crossFade(currentPhotoView, nextPhotoView);
+        swapViews();
 
         // prefetch the following one
         final Photo followingPhoto = photoQueue.peek();
@@ -62,5 +76,35 @@ public class Display implements Runnable {
 
     private boolean isQueueLow() {
         return photoQueue.size() < MIN_QUEUE_SIZE;
+    }
+
+    private void swapViews() {
+        if (currentPhotoView == photoViewA) {
+            currentPhotoView = photoViewB;
+            nextPhotoView    = photoViewA;
+        } else {
+            currentPhotoView = photoViewA;
+            nextPhotoView    = photoViewB;
+        }
+    }
+
+    private void crossFade(final ImageView currentPhotoView, final ImageView nextPhotoView) {
+        nextPhotoView.setAlpha(0f);
+        nextPhotoView.setVisibility(View.VISIBLE);
+
+        nextPhotoView.animate()
+            .alpha(1f)
+            .setDuration(FADE_DURATION)
+            .setListener(null);
+
+        currentPhotoView.animate()
+            .alpha(0f)
+            .setDuration(FADE_DURATION)
+            .setListener(new AnimatorListenerAdapter() {
+                    @Override
+                    public void onAnimationEnd(Animator animation) {
+                        currentPhotoView.setVisibility(View.GONE);
+                    }
+                });
     }
 }

@@ -57,8 +57,9 @@ public class PhotoFrameActivity extends Activity {
 
         showPlanner = new ShowPlanner(photoCollection);
 
-        ImageView photoView = findViewById(R.id.photo);
-        display = new Display(this, photoView, showPlanner);
+        ImageView photoViewA = findViewById(R.id.photoA);
+        ImageView photoViewB = findViewById(R.id.photoB);
+        display = new Display(this, photoViewA, photoViewB, showPlanner);
 
         photoCollection.startDiscovery();
     }
