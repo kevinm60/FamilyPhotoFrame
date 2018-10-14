@@ -1,11 +1,14 @@
 package app.familyphotoframe.slideshow;
 
 import java.util.LinkedList;
+import java.text.SimpleDateFormat;
 import android.util.Log;
 import android.app.Activity;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.os.Handler;
 import android.view.View;
+import android.view.ViewGroup;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 
@@ -14,6 +17,7 @@ import com.bumptech.glide.request.RequestOptions;
 import com.bumptech.glide.request.RequestListener;
 
 import app.familyphotoframe.model.Photo;
+import app.familyphotoframe.model.CrossFadeGroup;
 
 /**
  * this is the slideshow thread.
@@ -23,22 +27,21 @@ public class Display implements Runnable {
     final private int FRAME_DURATION = 10000; // 10 secs
     final private int FADE_DURATION;
 
+    final private SimpleDateFormat dateFormat = new SimpleDateFormat("EEEE, MMMM d, yyyy");
     final private Activity photoFrameActivity;
     final private ShowPlanner showPlanner;
     final private LinkedList<Photo> photoQueue = new LinkedList<>();
-    final private ImageView photoViewA;
-    final private ImageView photoViewB;
-    private ImageView currentPhotoView;
-    private ImageView nextPhotoView;
+    final private CrossFadeGroup groupA;
+    final private CrossFadeGroup groupB;
+    private boolean isCurrentA = true;
 
-    public Display(final Activity photoFrameActivity, final ImageView photoViewA, final ImageView photoViewB,
+    public Display(final Activity photoFrameActivity,
+                   final CrossFadeGroup groupA, final CrossFadeGroup groupB,
                    final ShowPlanner showPlanner) {
         this.photoFrameActivity = photoFrameActivity;
-        this.photoViewA = photoViewA;
-        this.photoViewB = photoViewB;
-        photoViewB.setVisibility(View.GONE);
-        this.currentPhotoView = photoViewA;
-        this.nextPhotoView = photoViewB;
+        this.groupA = groupA;
+        this.groupB = groupB;
+        groupB.getFrame().setVisibility(View.GONE);
         this.showPlanner = showPlanner;
         FADE_DURATION = photoFrameActivity.getResources().getInteger(android.R.integer.config_longAnimTime);
     }
@@ -59,10 +62,11 @@ public class Display implements Runnable {
         Glide.with(photoFrameActivity)
             .load(nextPhoto.getUrl())
             .apply(options)
-            .into(nextPhotoView);
+            .into(nextGroup().getPhoto());
+        nextGroup().getCaption().setText(makePhotoCaption(nextPhoto));
 
-        crossFade(currentPhotoView, nextPhotoView);
-        swapViews();
+        crossFade(currentGroup().getFrame(), nextGroup().getFrame());
+        isCurrentA = !isCurrentA;
 
         // prefetch the following one
         final Photo followingPhoto = photoQueue.peek();
@@ -78,17 +82,21 @@ public class Display implements Runnable {
         return photoQueue.size() < MIN_QUEUE_SIZE;
     }
 
-    private void swapViews() {
-        if (currentPhotoView == photoViewA) {
-            currentPhotoView = photoViewB;
-            nextPhotoView    = photoViewA;
-        } else {
-            currentPhotoView = photoViewA;
-            nextPhotoView    = photoViewB;
-        }
+    private CrossFadeGroup currentGroup() {
+        return isCurrentA? groupA : groupB;
     }
 
-    private void crossFade(final ImageView currentPhotoView, final ImageView nextPhotoView) {
+    private CrossFadeGroup nextGroup() {
+        return isCurrentA? groupB : groupA;
+    }
+
+    private String makePhotoCaption(final Photo photo) {
+        return String.format("%s\n%s\n\n%s", photo.getOwner().getName(),
+                             dateFormat.format(photo.getDateTaken()),
+                             photo.getDescription());
+    }
+
+    private void crossFade(final ViewGroup currentPhotoView, final ViewGroup nextPhotoView) {
         nextPhotoView.setAlpha(0f);
         nextPhotoView.setVisibility(View.VISIBLE);
 

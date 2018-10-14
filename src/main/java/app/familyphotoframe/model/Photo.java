@@ -10,8 +10,7 @@ public class Photo {
     private String serverId;
     private Contact owner;
     private Date dateTaken;
-    private List<String> comments;
-    private List<String> tags;
+    private String description;
 
     public Photo(final String id, final String secret, final String serverId, final String farmId, final Contact owner) {
         this.id = id;
@@ -63,18 +62,11 @@ public class Photo {
         this.dateTaken = dateTaken;
     }
 
-    public List<String> getComments() {
-        return comments;
+    public String getDescription() {
+        return description;
     }
-    public void setComments(final List<String> comments) {
-        this.comments = comments;
-    }
-
-    public List<String> getTags() {
-        return tags;
-    }
-    public void setTags(final List<String> tags) {
-        this.tags = tags;
+    public void setDescription(final String description) {
+        this.description = description;
     }
 
     public String getUrl() {

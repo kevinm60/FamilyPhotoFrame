@@ -57,6 +57,8 @@ public class FlickrClient extends OAuthBaseClient {
     private static String FLICKR_OWNER_FIELD = "owner";
     private static String FLICKR_DATES_FIELD = "dates";
     private static String FLICKR_TAKEN_FIELD = "taken";
+    private static String FLICKR_DESCRIPTION_FIELD = "description";
+    private static String FLICKR_CONTENT_FIELD = "_content";
     private static String FLICKR_DATE_FORMAT = "y-M-d H:m:s";
 
     public FlickrClient(final Context context) {
@@ -235,7 +237,7 @@ public class FlickrClient extends OAuthBaseClient {
         }
     }
 
-    // TODO title, description, comments, tags
+    // TODO comments, tags
     class PhotoMetadataResponseHandler extends JsonHttpResponseHandler {
         private DateFormat dateFormat = new SimpleDateFormat(FLICKR_DATE_FORMAT);
         private PhotoCollection photoCollection;
@@ -257,6 +259,8 @@ public class FlickrClient extends OAuthBaseClient {
                 String dateTakenString = jsonPhoto.getJSONObject(FLICKR_DATES_FIELD).getString(FLICKR_TAKEN_FIELD);
                 Date dateTaken = dateFormat.parse(dateTakenString);
                 photo.setDateTaken(dateTaken);
+                String description = jsonPhoto.getJSONObject(FLICKR_DESCRIPTION_FIELD).getString(FLICKR_CONTENT_FIELD);
+                photo.setDescription(description);
             } catch (JSONException | ParseException e ) {
                 Log.e("FlickrClient", "getContactsPhotos Exception: " + e);
             }

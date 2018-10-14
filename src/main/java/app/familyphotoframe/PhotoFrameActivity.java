@@ -9,11 +9,13 @@ import android.content.res.Resources;
 
 import android.app.Activity;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 import android.content.Intent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MenuInflater;
@@ -24,6 +26,7 @@ import com.bumptech.glide.Glide;
 import app.familyphotoframe.repository.FlickrClient;
 import app.familyphotoframe.repository.PhotoCollection;
 import app.familyphotoframe.slideshow.Display;
+import app.familyphotoframe.model.CrossFadeGroup;
 import app.familyphotoframe.slideshow.ShowPlanner;
 
 
@@ -38,6 +41,8 @@ public class PhotoFrameActivity extends Activity {
     private Display display;
     private Handler hideUiHandler;
     private Set<ReHideSystemUiTask> hideUiTasks;
+
+    final private long FULLSCREEN_DELAY = 3000L;
 
     /**
      * instantiate photoCollection, showPlanner, display, then start discovery.
@@ -57,9 +62,13 @@ public class PhotoFrameActivity extends Activity {
 
         showPlanner = new ShowPlanner(photoCollection);
 
-        ImageView photoViewA = findViewById(R.id.photoA);
-        ImageView photoViewB = findViewById(R.id.photoB);
-        display = new Display(this, photoViewA, photoViewB, showPlanner);
+        CrossFadeGroup groupA = new CrossFadeGroup((ViewGroup)findViewById(R.id.frameA),
+                                                   (ImageView)findViewById(R.id.photoA),
+                                                   (TextView)findViewById(R.id.captionA));
+        CrossFadeGroup groupB = new CrossFadeGroup((ViewGroup)findViewById(R.id.frameB),
+                                                   (ImageView)findViewById(R.id.photoB),
+                                                   (TextView)findViewById(R.id.captionB));
+        display = new Display(this, groupA, groupB, showPlanner);
 
         photoCollection.startDiscovery();
     }
@@ -122,7 +131,7 @@ public class PhotoFrameActivity extends Activity {
         }
         ReHideSystemUiTask task = new ReHideSystemUiTask();
         hideUiTasks.add(task);
-        hideUiHandler.postDelayed(task, 5000L);
+        hideUiHandler.postDelayed(task, FULLSCREEN_DELAY);
         return true;
     }
 
