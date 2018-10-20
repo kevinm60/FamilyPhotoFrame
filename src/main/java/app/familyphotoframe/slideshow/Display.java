@@ -24,9 +24,11 @@ import app.familyphotoframe.model.CrossFadeGroup;
  */
 public class Display implements Runnable {
     final private int MIN_QUEUE_SIZE = 3;
-    final private int FRAME_DURATION = 10000; // 10 secs
+    final private int FRAME_DURATION_DAY   = 30 * 1000; // 30 secs
+    final private int FRAME_DURATION_NIGHT = 3 * 60 * 1000; // 3 mins
     final private int FADE_DURATION;
 
+    final private Handler timerHandler = new Handler();
     final private SimpleDateFormat dateFormat = new SimpleDateFormat("EEEE, MMMM d, yyyy");
     final private Activity photoFrameActivity;
     final private ShowPlanner showPlanner;
@@ -34,6 +36,7 @@ public class Display implements Runnable {
     final private CrossFadeGroup groupA;
     final private CrossFadeGroup groupB;
     private boolean isCurrentA = true;
+    private int frameDuration = FRAME_DURATION_DAY;
 
     public Display(final Activity photoFrameActivity,
                    final CrossFadeGroup groupA, final CrossFadeGroup groupB,
@@ -46,6 +49,10 @@ public class Display implements Runnable {
         FADE_DURATION = photoFrameActivity.getResources().getInteger(android.R.integer.config_longAnimTime);
     }
 
+    /**
+     * this routine advances the slideshow and sets a timer to call itself again to advance the
+     * slideshow again.
+     */
     @Override
     public void run() {
         if (isQueueLow()) {
@@ -74,8 +81,23 @@ public class Display implements Runnable {
             .load(followingPhoto.getUrl())
             .preload();
 
-        Handler timerHandler = new Handler();
-        timerHandler.postDelayed(this, FRAME_DURATION);
+        // Log.i("Display", "next frame in: " + frameDuration);
+        timerHandler.postDelayed(this, frameDuration);
+    }
+
+    /**
+     * stop the slideshow
+     */
+    public void pause() {
+        timerHandler.removeCallbacks(this);
+    }
+
+    public void itsNighttime() {
+        frameDuration = FRAME_DURATION_NIGHT;
+    }
+
+    public void itsDaytime() {
+        frameDuration = FRAME_DURATION_DAY;
     }
 
     private boolean isQueueLow() {
