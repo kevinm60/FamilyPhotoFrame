@@ -9,6 +9,8 @@ import android.os.SystemClock;
 import android.os.Handler;
 import android.util.Log;
 
+import app.familyphotoframe.repository.PhotoCollection;
+
 
 /**
  * this controls sleep and wake events
@@ -17,15 +19,18 @@ public class SleepCycle {
 
     final private Window window;
     final private Handler uiHandler;
-    private Display display;
+    final private Display display;
+    final private PhotoCollection photoCollection;
 
     final private int WAKE_HOUR = 7;  // 7 am
     final private int SLEEP_HOUR = 21; // 9 pm
 
-    public SleepCycle(Window window, Handler uiHandler, Display display) {
+    public SleepCycle(final Window window, final Handler uiHandler,
+                      final Display display, final PhotoCollection photoCollection) {
         this.window = window;
         this.uiHandler = uiHandler;
         this.display = display;
+        this.photoCollection = photoCollection;
     }
 
     public void init() {
@@ -33,6 +38,7 @@ public class SleepCycle {
             wake();
         } else {
             sleep();
+            photoCollection.startDiscovery();
         }
     }
 
@@ -51,6 +57,8 @@ public class SleepCycle {
      */
     public void wake() {
         Log.i("PhotoFrameActivity", "begin wake");
+        display.pause(); // stop the slideshow
+        photoCollection.startDiscovery(); // this will restart the slideshow when done
         display.itsDaytime();
         setScreenBrightness(WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_FULL);
         uiHandler.postAtTime(new SleepTask(), thisNight());

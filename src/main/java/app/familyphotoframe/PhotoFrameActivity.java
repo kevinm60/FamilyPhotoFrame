@@ -69,9 +69,7 @@ public class PhotoFrameActivity extends Activity {
                                                    (ImageView)findViewById(R.id.photoB),
                                                    (TextView)findViewById(R.id.captionB));
         display = new Display(this, groupA, groupB, showPlanner);
-        sleepCycle = new SleepCycle(getWindow(), uiHandler, display);
-
-        photoCollection.startDiscovery(); // this will call startShow when done
+        sleepCycle = new SleepCycle(getWindow(), uiHandler, display, photoCollection);
     }
 
     /**
