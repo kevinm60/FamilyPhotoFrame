@@ -3,8 +3,6 @@ package app.familyphotoframe;
 import java.util.ArrayList;
 import java.util.Set;
 import java.util.HashSet;
-import java.util.Calendar;
-import java.text.SimpleDateFormat;
 
 import android.content.res.Resources;
 
@@ -13,10 +11,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.SystemClock;
 import android.util.Log;
-import android.content.Intent;
-import android.view.WindowManager;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Menu;
@@ -32,6 +27,7 @@ import app.familyphotoframe.repository.PhotoCollection;
 import app.familyphotoframe.slideshow.Display;
 import app.familyphotoframe.model.CrossFadeGroup;
 import app.familyphotoframe.slideshow.ShowPlanner;
+import app.familyphotoframe.slideshow.SleepCycle;
 
 
 /**
@@ -45,9 +41,8 @@ public class PhotoFrameActivity extends Activity {
     private Display display;
     private Handler uiHandler;
     private Set<ReHideSystemUiTask> uiTasks;
+    private SleepCycle sleepCycle;
     final private long FULLSCREEN_DELAY = 2000L;
-    final private int WAKE_HOUR = 7;  // 7 am
-    final private int SLEEP_HOUR = 21; // 9 pm
 
     /**
      * instantiate photoCollection, showPlanner, display, then start discovery.
@@ -74,8 +69,9 @@ public class PhotoFrameActivity extends Activity {
                                                    (ImageView)findViewById(R.id.photoB),
                                                    (TextView)findViewById(R.id.captionB));
         display = new Display(this, groupA, groupB, showPlanner);
+        sleepCycle = new SleepCycle(getWindow(), uiHandler, display);
 
-        photoCollection.startDiscovery();
+        photoCollection.startDiscovery(); // this will call startShow when done
     }
 
     /**
@@ -110,11 +106,7 @@ public class PhotoFrameActivity extends Activity {
 
     protected void onStart() {
         super.onStart();
-        if (isDaytime()) {
-            wake();
-        } else {
-            sleep();
-        }
+        sleepCycle.init();
         Log.i("PhotoFrameActivity", "started");
     }
 
@@ -122,32 +114,6 @@ public class PhotoFrameActivity extends Activity {
         super.onRestart();
         startShow();
         Log.i("PhotoFrameActivity", "restarted");
-    }
-
-    /**
-     * stop the slideshow and turn the screen off
-     */
-    public void sleep() {
-        Log.i("PhotoFrameActivity", "in sleep");
-        display.itsNighttime();
-        setScreenBrightness(WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_OFF);
-        uiHandler.postAtTime(new WakeTask(), tomorrowMorning());
-    }
-
-    /**
-     * turn the screen on and resume the slideshow
-     */
-    public void wake() {
-        Log.i("PhotoFrameActivity", "in wake");
-        display.itsDaytime();
-        setScreenBrightness(WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_FULL);
-        uiHandler.postAtTime(new SleepTask(), thisNight());
-    }
-
-    private void setScreenBrightness(final float val) {
-        WindowManager.LayoutParams lp = getWindow().getAttributes();
-        lp.screenBrightness = val;
-        getWindow().setAttributes(lp);
     }
 
     @Override
@@ -192,54 +158,11 @@ public class PhotoFrameActivity extends Activity {
         return true;
     }
 
-    private boolean isDaytime() {
-        Calendar now = Calendar.getInstance();
-        return now.get(Calendar.HOUR_OF_DAY) > WAKE_HOUR && now.get(Calendar.HOUR_OF_DAY) < SLEEP_HOUR;
-    }
-
-    private long thisNight() {
-        Calendar now = Calendar.getInstance();
-        Calendar then = Calendar.getInstance();
-        then.set(Calendar.HOUR_OF_DAY, SLEEP_HOUR);
-        then.set(Calendar.MINUTE, 0);
-        then.set(Calendar.SECOND, 0);
-        then.set(Calendar.MILLISECOND, 0);
-        Log.i("PhotoFrameActivity", "sleep thisNight: " + new SimpleDateFormat().format(then.getTime()));
-        return SystemClock.uptimeMillis() + then.getTimeInMillis() - now.getTimeInMillis() ;
-    }
-
-    private long tomorrowMorning() {
-        Calendar now = Calendar.getInstance();
-        Calendar then = Calendar.getInstance();
-        if (then.get(Calendar.AM_PM) == Calendar.PM) {
-            then.roll(Calendar.DATE, 1);
-        }
-        then.set(Calendar.HOUR_OF_DAY, WAKE_HOUR);
-        then.set(Calendar.MINUTE, 0);
-        then.set(Calendar.SECOND, 0);
-        then.set(Calendar.MILLISECOND, 0);
-        Log.i("PhotoFrameActivity", "wake tomorrowMorning: " + new SimpleDateFormat().format(then.getTime()));
-        return SystemClock.uptimeMillis() + then.getTimeInMillis() - now.getTimeInMillis() ;
-    }
-
     class ReHideSystemUiTask implements Runnable {
         public void run() {
             // Log.i("PhotoFrameActivity", "rehide system ui now");
             uiTasks.remove(this);
             hideSystemUI();
-            // Log.i("PhotoFrameActivity", "current time: " + new SimpleDateFormat().format(Calendar.getInstance().getTime()));
-        }
-    }
-
-    class SleepTask implements Runnable {
-        public void run() {
-            sleep();
-        }
-    }
-
-    class WakeTask implements Runnable {
-        public void run() {
-            wake();
         }
     }
 }
