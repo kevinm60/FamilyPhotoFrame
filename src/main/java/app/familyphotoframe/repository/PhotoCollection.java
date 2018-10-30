@@ -30,6 +30,8 @@ public class PhotoCollection {
 
     public void startDiscovery() {
         flickr.lookupProfile(this);
+        contacts.clear();
+        photos.clear();
     }
 
     public Contact getContact(final String userId) {
