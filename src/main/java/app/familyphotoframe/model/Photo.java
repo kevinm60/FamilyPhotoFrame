@@ -10,7 +10,7 @@ public class Photo {
     private String serverId;
     private Contact owner;
     private Date dateTaken;
-    private String description;
+    private String title;
 
     public Photo(final String id, final String secret, final String serverId, final String farmId, final Contact owner) {
         this.id = id;
@@ -62,11 +62,11 @@ public class Photo {
         this.dateTaken = dateTaken;
     }
 
-    public String getDescription() {
-        return description;
+    public String getTitle() {
+        return title;
     }
-    public void setDescription(final String description) {
-        this.description = description;
+    public void setTitle(final String title) {
+        this.title = title;
     }
 
     public String getUrl() {

@@ -115,7 +115,7 @@ public class Display implements Runnable {
     private String makePhotoCaption(final Photo photo) {
         return String.format("%s\n%s\n\n%s", photo.getOwner().getName(),
                              dateFormat.format(photo.getDateTaken()),
-                             photo.getDescription());
+                             photo.getTitle());
     }
 
     private void crossFade(final ViewGroup currentPhotoView, final ViewGroup nextPhotoView) {

@@ -43,6 +43,7 @@ public class FlickrClient extends OAuthBaseClient {
 
     private static String FLICKR_PROFILE_FIELD = "user";
     private static String FLICKR_USERNAME_FIELD = "username";
+    private static String FLICKR_REALNAME_FIELD = "realname";
     private static String FLICKR_CONTACTS_FIELD = "contacts";
     private static String FLICKR_CONTACT_FIELD = "contact";
     private static String FLICKR_USERID_FIELD = "nsid";
@@ -57,6 +58,7 @@ public class FlickrClient extends OAuthBaseClient {
     private static String FLICKR_OWNER_FIELD = "owner";
     private static String FLICKR_DATES_FIELD = "dates";
     private static String FLICKR_TAKEN_FIELD = "taken";
+    private static String FLICKR_TITLE_FIELD = "title";
     private static String FLICKR_DESCRIPTION_FIELD = "description";
     private static String FLICKR_CONTENT_FIELD = "_content";
     private static String FLICKR_DATE_FORMAT = "y-M-d H:m:s";
@@ -181,7 +183,10 @@ public class FlickrClient extends OAuthBaseClient {
                 for (int ii=0; ii<jsonContacts.length(); ii++) {
                     JSONObject jsonContact = jsonContacts.getJSONObject(ii);
                     Log.d("FlickrClient", "got jsonContact: " + jsonContact);
-                    String name = jsonContact.getString(FLICKR_USERNAME_FIELD);
+                    String name = jsonContact.getString(FLICKR_REALNAME_FIELD);
+                    if (name == null || name.length() == 0) {
+                        name = jsonContact.getString(FLICKR_USERNAME_FIELD);
+                    }
                     String userId = jsonContact.getString(FLICKR_USERID_FIELD);
                     Relationship relationship = null;
                     if (jsonContact.getInt(FLICKR_FAMILY_FIELD) == 1) {
@@ -259,8 +264,8 @@ public class FlickrClient extends OAuthBaseClient {
                 String dateTakenString = jsonPhoto.getJSONObject(FLICKR_DATES_FIELD).getString(FLICKR_TAKEN_FIELD);
                 Date dateTaken = dateFormat.parse(dateTakenString);
                 photo.setDateTaken(dateTaken);
-                String description = jsonPhoto.getJSONObject(FLICKR_DESCRIPTION_FIELD).getString(FLICKR_CONTENT_FIELD);
-                photo.setDescription(description);
+                String title = jsonPhoto.getJSONObject(FLICKR_TITLE_FIELD).getString(FLICKR_CONTENT_FIELD);
+                photo.setTitle(title);
             } catch (JSONException | ParseException e ) {
                 Log.e("FlickrClient", "getContactsPhotos Exception: " + e);
             }
