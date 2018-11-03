@@ -12,12 +12,15 @@ public class Photo {
     private Date dateTaken;
     private String title;
 
-    public Photo(final String id, final String secret, final String serverId, final String farmId, final Contact owner) {
+    public Photo(final String id, final String secret, final String serverId, final String farmId, final Contact owner,
+                 final String title, final Date dateTaken) {
         this.id = id;
         this.secret = secret;
         this.serverId = serverId;
         this.farmId = farmId;
         this.owner = owner;
+        this.title = title;
+        this.dateTaken = dateTaken;
     }
 
     public String getId() {

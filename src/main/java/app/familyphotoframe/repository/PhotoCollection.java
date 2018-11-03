@@ -29,9 +29,6 @@ public class PhotoCollection {
     /** count of async contact requests in progress */
     private int contactRequestsInProgress = 0;
 
-    /** count of async photo requests in progress */
-    private int photoRequestsInProgress = 0;
-
     public PhotoCollection(final PhotoFrameActivity photoFrameActivity, final FlickrClient flickr) {
         this.photoFrameActivity = photoFrameActivity;
         this.flickr = flickr;
@@ -73,24 +70,16 @@ public class PhotoCollection {
     public synchronized void markContactRequestComplete() {
             contactRequestsInProgress--;
             Log.d("PhotoCollection", "completed contactRequest, num in progress: " + contactRequestsInProgress);
-    }
-
-    public synchronized void addPhotoAndContinueDiscovery(final Photo photo) {
-        photos.add(photo);
-        Log.d("PhotoCollection", "starting photoRequest, num in progress: " + photoRequestsInProgress);
-        flickr.lookupPhotoMetadata(this, photo);
-        photoRequestsInProgress++;
-    }
-
-    public synchronized void markPhotoRequestComplete() {
-        photoRequestsInProgress--;
-        Log.d("PhotoCollection", "completed photoRequest, num in progress: " + photoRequestsInProgress);
 
         // discovery complete, start slideshow timer
-        if (contactRequestsInProgress == 0 && photoRequestsInProgress == 0) {
+        if (contactRequestsInProgress == 0) {
             Log.i("PhotoCollection", "photo count: " + photos.size());
             photoFrameActivity.startShow();
         }
+    }
+
+    public synchronized void addPhoto(final Photo photo) {
+        photos.add(photo);
     }
 
     // TODO getRecentPhotosBy, getOldPhotosBy

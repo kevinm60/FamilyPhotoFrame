@@ -55,15 +55,17 @@ public class FlickrClient extends OAuthBaseClient {
     private static final String FLICKR_SERVERID_FIELD = "server";
     private static final String FLICKR_FARMID_FIELD = "farm";
     private static final String FLICKR_OWNER_FIELD = "owner";
-    private static final String FLICKR_DATES_FIELD = "dates";
-    private static final String FLICKR_TAKEN_FIELD = "taken";
+    private static final String FLICKR_DATETAKEN_FIELD = "datetaken";
     private static final String FLICKR_TITLE_FIELD = "title";
     private static final String FLICKR_DESCRIPTION_FIELD = "description";
     private static final String FLICKR_CONTENT_FIELD = "_content";
     private static final String FLICKR_DATE_FORMAT = "y-M-d H:m:s";
 
+    private static final DateFormat DATE_FORMAT = new SimpleDateFormat(FLICKR_DATE_FORMAT);
+
     /** identifies this app to flickr */
     private final String apiKey;
+
 
     /**
      * ctor
@@ -128,6 +130,7 @@ public class FlickrClient extends OAuthBaseClient {
         params.put("method", "flickr.people.getPhotos");
         params.put("user_id", contact.getUserId());
         params.put("content_type", 1);
+        params.put("extras", "date_taken");
         params.put("per_page", 500);
 
         String apiUrl = getApiUrl("");
@@ -135,25 +138,6 @@ public class FlickrClient extends OAuthBaseClient {
         Log.d("FlickrClient", "params: " + params);
 
         client.get(apiUrl, params, new PhotosResponseHandler(photoCollection));
-    }
-
-    /**
-     * get metadata for the given photo from flickr
-     *
-     * @param photoCollection holds photos
-     * @param photo the photo to look up
-     */
-    public void lookupPhotoMetadata(final PhotoCollection photoCollection, final Photo photo) {
-        RequestParams params = makeRequestParams();
-        params.put("method", "flickr.photos.getInfo");
-        params.put("photo_id", photo.getId());
-        params.put("secret", photo.getSecret());
-
-        String apiUrl = getApiUrl("");
-        Log.d("FlickrClient", "apiUrl: " + apiUrl);
-        Log.d("FlickrClient", "params: " + params);
-
-        client.get(apiUrl, params, new PhotoMetadataResponseHandler(photoCollection, photo));
     }
 
     private RequestParams makeRequestParams() {
@@ -260,47 +244,18 @@ public class FlickrClient extends OAuthBaseClient {
                     String serverId = jsonPhoto.getString(FLICKR_SERVERID_FIELD);
                     String farmId = jsonPhoto.getString(FLICKR_FARMID_FIELD);
                     Contact owner = photoCollection.getContact(jsonPhoto.getString(FLICKR_OWNER_FIELD));
-                    Photo photo = new Photo(id, secret, serverId, farmId, owner);
-                    photoCollection.addPhotoAndContinueDiscovery(photo);
+
+                    String dateTakenString = jsonPhoto.getString(FLICKR_DATETAKEN_FIELD);
+                    Date dateTaken = DATE_FORMAT.parse(dateTakenString);
+                    String title = jsonPhoto.getString(FLICKR_TITLE_FIELD);
+
+                    Photo photo = new Photo(id, secret, serverId, farmId, owner, title, dateTaken);
+                    photoCollection.addPhoto(photo);
                 }
-            } catch (JSONException | NoSuchElementException e) {
+            } catch (JSONException | ParseException | NoSuchElementException e) {
                 Log.e("FlickrClient", "getContactsPhotos: " + e);
             }
             photoCollection.markContactRequestComplete();
-        }
-        public void onFailure(int statusCode, Header[] headers, Throwable err, JSONObject json) {
-            Log.e("FlickrClient", "fail: " + err);
-        }
-    }
-
-    // TODO comments, tags
-    class PhotoMetadataResponseHandler extends JsonHttpResponseHandler {
-        private DateFormat dateFormat = new SimpleDateFormat(FLICKR_DATE_FORMAT);
-        private PhotoCollection photoCollection;
-        private Photo photo;
-
-        public PhotoMetadataResponseHandler(final PhotoCollection photoCollection, final Photo photo) {
-            this.photoCollection = photoCollection;
-            this.photo = photo;
-        }
-
-        public void onStart() {
-            Log.d("FlickrClient", "photo request started");
-        }
-
-        public void onSuccess(int statusCode, Header[] headers, JSONObject json) {
-            try {
-                Log.d("FlickrClient", "got photo metadata: " + json);
-                JSONObject jsonPhoto = json.getJSONObject(FLICKR_PHOTO_FIELD);
-                String dateTakenString = jsonPhoto.getJSONObject(FLICKR_DATES_FIELD).getString(FLICKR_TAKEN_FIELD);
-                Date dateTaken = dateFormat.parse(dateTakenString);
-                photo.setDateTaken(dateTaken);
-                String title = jsonPhoto.getJSONObject(FLICKR_TITLE_FIELD).getString(FLICKR_CONTENT_FIELD);
-                photo.setTitle(title);
-            } catch (JSONException | ParseException e ) {
-                Log.e("FlickrClient", "getContactsPhotos Exception: " + e);
-            }
-            photoCollection.markPhotoRequestComplete();
         }
         public void onFailure(int statusCode, Header[] headers, Throwable err, JSONObject json) {
             Log.e("FlickrClient", "fail: " + err);
