@@ -39,30 +39,37 @@ public class FlickrClient extends OAuthBaseClient {
     public static final BaseApi REST_API_INSTANCE = FlickrApi.instance(FlickrPerm.READ);
     public static final String REST_URL = "https://api.flickr.com/services/rest";
     public static final String REST_CALLBACK_URL = "oauth://flickrCallback.com";
-    private String apiKey;
 
-    private static String FLICKR_PROFILE_FIELD = "user";
-    private static String FLICKR_USERNAME_FIELD = "username";
-    private static String FLICKR_REALNAME_FIELD = "realname";
-    private static String FLICKR_CONTACTS_FIELD = "contacts";
-    private static String FLICKR_CONTACT_FIELD = "contact";
-    private static String FLICKR_USERID_FIELD = "nsid";
-    private static String FLICKR_FAMILY_FIELD = "family";
-    private static String FLICKR_FRIEND_FIELD = "friend";
-    private static String FLICKR_PHOTOS_FIELD = "photos";
-    private static String FLICKR_PHOTO_FIELD = "photo";
-    private static String FLICKR_ID_FIELD = "id";
-    private static String FLICKR_SECRET_FIELD = "secret";
-    private static String FLICKR_SERVERID_FIELD = "server";
-    private static String FLICKR_FARMID_FIELD = "farm";
-    private static String FLICKR_OWNER_FIELD = "owner";
-    private static String FLICKR_DATES_FIELD = "dates";
-    private static String FLICKR_TAKEN_FIELD = "taken";
-    private static String FLICKR_TITLE_FIELD = "title";
-    private static String FLICKR_DESCRIPTION_FIELD = "description";
-    private static String FLICKR_CONTENT_FIELD = "_content";
-    private static String FLICKR_DATE_FORMAT = "y-M-d H:m:s";
+    private static final String FLICKR_PROFILE_FIELD = "user";
+    private static final String FLICKR_USERNAME_FIELD = "username";
+    private static final String FLICKR_REALNAME_FIELD = "realname";
+    private static final String FLICKR_CONTACTS_FIELD = "contacts";
+    private static final String FLICKR_CONTACT_FIELD = "contact";
+    private static final String FLICKR_USERID_FIELD = "nsid";
+    private static final String FLICKR_FAMILY_FIELD = "family";
+    private static final String FLICKR_FRIEND_FIELD = "friend";
+    private static final String FLICKR_PHOTOS_FIELD = "photos";
+    private static final String FLICKR_PHOTO_FIELD = "photo";
+    private static final String FLICKR_ID_FIELD = "id";
+    private static final String FLICKR_SECRET_FIELD = "secret";
+    private static final String FLICKR_SERVERID_FIELD = "server";
+    private static final String FLICKR_FARMID_FIELD = "farm";
+    private static final String FLICKR_OWNER_FIELD = "owner";
+    private static final String FLICKR_DATES_FIELD = "dates";
+    private static final String FLICKR_TAKEN_FIELD = "taken";
+    private static final String FLICKR_TITLE_FIELD = "title";
+    private static final String FLICKR_DESCRIPTION_FIELD = "description";
+    private static final String FLICKR_CONTENT_FIELD = "_content";
+    private static final String FLICKR_DATE_FORMAT = "y-M-d H:m:s";
 
+    /** identifies this app to flickr */
+    private final String apiKey;
+
+    /**
+     * ctor
+     *
+     * @param contect android app context
+     */
     public FlickrClient(final Context context) {
         super(context,
               REST_API_INSTANCE,
@@ -78,6 +85,11 @@ public class FlickrClient extends OAuthBaseClient {
         clearAccessToken();
     }
 
+    /**
+     * get logged in user's profile info from flickr
+     *
+     * @param photoCollection holds photos
+     */
     public void lookupProfile(final PhotoCollection photoCollection) {
         RequestParams params = makeRequestParams();
         params.put("method", "flickr.test.login");
@@ -89,6 +101,11 @@ public class FlickrClient extends OAuthBaseClient {
         client.get(apiUrl, params, new ProfileResponseHandler(photoCollection));
     }
 
+    /**
+     * get logged in user's relations from flickr
+     *
+     * @param photoCollection holds photos
+     */
     public void lookupContacts(final PhotoCollection photoCollection) {
         RequestParams params = makeRequestParams();
         params.put("method", "flickr.contacts.getList");
@@ -100,11 +117,18 @@ public class FlickrClient extends OAuthBaseClient {
         client.get(apiUrl, params, new ContactsResponseHandler(photoCollection));
     }
 
-    public void lookupPhotos(final PhotoCollection photoCollection) {
+    /**
+     * get list of the given flickr user's photos
+     *
+     * @param photoCollection holds photos
+     * @param contact a flickr user
+     */
+    public void lookupPhotos(final PhotoCollection photoCollection, final Contact contact) {
         RequestParams params = makeRequestParams();
-        params.put("method", "flickr.photos.getContactsPhotos");
-        params.put("include_self", 1);
-        params.put("count", 50);
+        params.put("method", "flickr.people.getPhotos");
+        params.put("user_id", contact.getUserId());
+        params.put("content_type", 1);
+        params.put("per_page", 500);
 
         String apiUrl = getApiUrl("");
         Log.d("FlickrClient", "apiUrl: " + apiUrl);
@@ -113,6 +137,12 @@ public class FlickrClient extends OAuthBaseClient {
         client.get(apiUrl, params, new PhotosResponseHandler(photoCollection));
     }
 
+    /**
+     * get metadata for the given photo from flickr
+     *
+     * @param photoCollection holds photos
+     * @param photo the photo to look up
+     */
     public void lookupPhotoMetadata(final PhotoCollection photoCollection, final Photo photo) {
         RequestParams params = makeRequestParams();
         params.put("method", "flickr.photos.getInfo");
@@ -236,6 +266,7 @@ public class FlickrClient extends OAuthBaseClient {
             } catch (JSONException | NoSuchElementException e) {
                 Log.e("FlickrClient", "getContactsPhotos: " + e);
             }
+            photoCollection.markContactRequestComplete();
         }
         public void onFailure(int statusCode, Header[] headers, Throwable err, JSONObject json) {
             Log.e("FlickrClient", "fail: " + err);
@@ -269,7 +300,7 @@ public class FlickrClient extends OAuthBaseClient {
             } catch (JSONException | ParseException e ) {
                 Log.e("FlickrClient", "getContactsPhotos Exception: " + e);
             }
-            photoCollection.markAsyncRequestComplete();
+            photoCollection.markPhotoRequestComplete();
         }
         public void onFailure(int statusCode, Header[] headers, Throwable err, JSONObject json) {
             Log.e("FlickrClient", "fail: " + err);

@@ -14,12 +14,23 @@ import app.familyphotoframe.model.Photo;
  */
 public class PhotoCollection {
 
+    /** activity with the slideshow */
     private PhotoFrameActivity photoFrameActivity;
+
+    /** provides access to flickr data */
     private FlickrClient flickr;
+
+    /** all photos we know about */
     private Set<Photo> photos;
+
+    /** all flickr relations */
     private Set<Contact> contacts;
 
-    private int asyncRequestsInProgress = 0;
+    /** count of async contact requests in progress */
+    private int contactRequestsInProgress = 0;
+
+    /** count of async photo requests in progress */
+    private int photoRequestsInProgress = 0;
 
     public PhotoCollection(final PhotoFrameActivity photoFrameActivity, final FlickrClient flickr) {
         this.photoFrameActivity = photoFrameActivity;
@@ -49,25 +60,35 @@ public class PhotoCollection {
         Log.i("PhotoCollection", "added profile: " + newContact);
     }
 
-    public void addContactsAndContinueDiscovery(final Set<Contact> newContacts) {
+    public synchronized void addContactsAndContinueDiscovery(final Set<Contact> newContacts) {
         contacts.addAll(newContacts);
         Log.i("PhotoCollection", "added contacts: " + newContacts);
-        flickr.lookupPhotos(this);
+        for (Contact contact : contacts) {
+            Log.d("PhotoCollection", "starting contactRequest, num in progress: " + contactRequestsInProgress);
+            flickr.lookupPhotos(this, contact);
+            contactRequestsInProgress++;
+        }
+    }
+
+    public synchronized void markContactRequestComplete() {
+            contactRequestsInProgress--;
+            Log.d("PhotoCollection", "completed contactRequest, num in progress: " + contactRequestsInProgress);
     }
 
     public synchronized void addPhotoAndContinueDiscovery(final Photo photo) {
         photos.add(photo);
-        Log.d("PhotoCollection", "starting asyncRequest, count: " + asyncRequestsInProgress);
+        Log.d("PhotoCollection", "starting photoRequest, num in progress: " + photoRequestsInProgress);
         flickr.lookupPhotoMetadata(this, photo);
-        asyncRequestsInProgress++;
+        photoRequestsInProgress++;
     }
 
-    public synchronized void markAsyncRequestComplete() {
-        asyncRequestsInProgress--;
-        Log.d("PhotoCollection", "asyncRequestsInProgress: " + asyncRequestsInProgress);
+    public synchronized void markPhotoRequestComplete() {
+        photoRequestsInProgress--;
+        Log.d("PhotoCollection", "completed photoRequest, num in progress: " + photoRequestsInProgress);
 
         // discovery complete, start slideshow timer
-        if (asyncRequestsInProgress == 0) {
+        if (contactRequestsInProgress == 0 && photoRequestsInProgress == 0) {
+            Log.i("PhotoCollection", "photo count: " + photos.size());
             photoFrameActivity.startShow();
         }
     }
