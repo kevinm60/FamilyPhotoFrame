@@ -24,6 +24,8 @@ import app.familyphotoframe.model.CrossFadeGroup;
  */
 public class Display implements Runnable {
     final private int MIN_QUEUE_SIZE = 3;
+    final private int MAX_HISTORY_SIZE = 100;
+    final private int NUM_PHOTOS_TO_PLAN = 10;
     final private int FRAME_DURATION_DAY   = 30 * 1000; // 30 secs
     final private int FRAME_DURATION_NIGHT = 3 * 60 * 1000; // 3 mins
     final private int FADE_DURATION;
@@ -33,6 +35,8 @@ public class Display implements Runnable {
     final private Activity photoFrameActivity;
     final private ShowPlanner showPlanner;
     final private LinkedList<Photo> photoQueue = new LinkedList<>();
+    final private LinkedList<Photo> photoHistory = new LinkedList<>();
+    private int currentPhotoIndex;
     final private CrossFadeGroup groupA;
     final private CrossFadeGroup groupB;
     private boolean isCurrentA = true;
@@ -42,6 +46,7 @@ public class Display implements Runnable {
                    final CrossFadeGroup groupA, final CrossFadeGroup groupB,
                    final ShowPlanner showPlanner) {
         this.photoFrameActivity = photoFrameActivity;
+	this.currentPhotoIndex = 0;
         this.groupA = groupA;
         this.groupB = groupB;
         groupB.getFrame().setVisibility(View.GONE);
@@ -55,15 +60,44 @@ public class Display implements Runnable {
      */
     @Override
     public void run() {
-        if (isQueueLow()) {
-            photoQueue.addAll(showPlanner.getPhotosToSchedule(10));
+	forward();
+    }
+
+    public synchronized void prime() {
+	photoQueue.addAll(showPlanner.getPhotosToSchedule(NUM_PHOTOS_TO_PLAN));
+	photoHistory.add(photoQueue.poll());
+	showNextPhoto(photoHistory.getFirst());
+    }
+
+    public synchronized void forward() {
+        // Log.i("Display", "moving forward in photo history");
+	if (currentPhotoIndex == photoHistory.size()-1) {
+	    // Log.i("Display", "fetching next photo from queue");
+	    if (isHistoryFull()) {
+		photoHistory.remove();
+		--currentPhotoIndex;
+	    }
+	    photoHistory.add(photoQueue.poll());
+	} 
+
+	showNextPhoto(photoHistory.get(++currentPhotoIndex));
+
+	if (isQueueLow()) {
+            photoQueue.addAll(showPlanner.getPhotosToSchedule(NUM_PHOTOS_TO_PLAN));
         }
+    }
 
-        Log.i("Display", "showing " + photoQueue.size());
+    public synchronized void backward() {
+        // Log.i("Display", "moving backward in photo history");
+	if (currentPhotoIndex > 0) {
+	    showNextPhoto(photoHistory.get(--currentPhotoIndex));
+	}
+    }
 
-        // show the next photo
-        final Photo nextPhoto = photoQueue.poll();
+    public void showNextPhoto(final Photo nextPhoto) {
+	Log.i("Display", "showing photo #" + (currentPhotoIndex+1) + " of " + photoHistory.size() + "; there are " + photoQueue.size() + " photos remaining in the queue");
         Log.i("Display", "nextphoto " + nextPhoto.getUrl());
+	
         RequestOptions options = new RequestOptions()
             .fitCenter();
         Glide.with(photoFrameActivity)
@@ -81,7 +115,9 @@ public class Display implements Runnable {
             .load(followingPhoto.getUrl())
             .preload();
 
-        // Log.i("Display", "next frame in: " + frameDuration);
+	// reset timer
+	// Log.i("Display", "next frame in: " + frameDuration);
+	timerHandler.removeCallbacks(this);
         timerHandler.postDelayed(this, frameDuration);
     }
 
@@ -102,6 +138,10 @@ public class Display implements Runnable {
 
     private boolean isQueueLow() {
         return photoQueue.size() < MIN_QUEUE_SIZE;
+    }
+
+    private boolean isHistoryFull() {
+        return photoHistory.size() >= MAX_HISTORY_SIZE;
     }
 
     private CrossFadeGroup currentGroup() {

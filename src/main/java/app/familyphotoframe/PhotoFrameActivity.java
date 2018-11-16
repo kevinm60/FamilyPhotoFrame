@@ -18,6 +18,9 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MenuInflater;
 import android.view.MotionEvent;
+import android.view.GestureDetector;
+import android.view.GestureDetector.SimpleOnGestureListener;
+import android.support.v4.view.GestureDetectorCompat;
 
 
 import com.codepath.oauth.OAuthBaseClient;
@@ -35,6 +38,7 @@ import app.familyphotoframe.slideshow.SleepCycle;
  */
 public class PhotoFrameActivity extends Activity {
 
+    private GestureDetectorCompat gestureDetector;
     private FlickrClient flickr;
     private PhotoCollection photoCollection;
     private ShowPlanner showPlanner;
@@ -43,6 +47,44 @@ public class PhotoFrameActivity extends Activity {
     private Set<ReHideSystemUiTask> uiTasks;
     private SleepCycle sleepCycle;
     final private long FULLSCREEN_DELAY = 2000L;
+    final private int SWIPE_MIN_DISTANCE = 120;
+    final private int SWIPE_THRESHOLD_VELOCITY = 200;
+
+    class GestureListener extends GestureDetector.SimpleOnGestureListener {
+        @Override
+        public boolean onDown(MotionEvent event) {
+            // Log.i("PhotoFrameActivity","onDown: " + event.toString());
+            return true;
+        }
+
+	@Override
+	public boolean onSingleTapUp(MotionEvent event) {
+	    // Log.i("PhotoFrameActivity", "onSingleTapUp: " + event.toString());
+	    for (ReHideSystemUiTask task : uiTasks) {
+		uiHandler.removeCallbacks(task);
+	    }
+	    ReHideSystemUiTask task = new ReHideSystemUiTask();
+	    uiTasks.add(task);
+	    uiHandler.postDelayed(task, FULLSCREEN_DELAY);
+	    return true;
+	}
+
+	@Override
+	public boolean onFling(MotionEvent event1, MotionEvent event2,
+			       float velocityX, float velocityY) {
+	    // Log.i("PhotoFrameActivity", "onFling: " + event1.toString() + event2.toString());
+	    if(event1.getX() - event2.getX() > SWIPE_MIN_DISTANCE &&
+	       Math.abs(velocityX) > SWIPE_THRESHOLD_VELOCITY) {
+		display.forward();
+		return true; // Right to left
+	    } else if (event2.getX() - event1.getX() > SWIPE_MIN_DISTANCE &&
+		       Math.abs(velocityX) > SWIPE_THRESHOLD_VELOCITY) {
+		display.backward();
+		return true; // Left to right
+	    }	
+	    return false;
+	}
+    }
 
     /**
      * instantiate photoCollection, showPlanner, display, then start discovery.
@@ -56,6 +98,8 @@ public class PhotoFrameActivity extends Activity {
         uiTasks = new HashSet<>();
 
         hideSystemUI();
+
+	gestureDetector = new GestureDetectorCompat(this, new GestureListener());
 
         flickr = (FlickrClient) OAuthBaseClient.getInstance(FlickrClient.class, getApplicationContext());
         photoCollection = new PhotoCollection(this, flickr);
@@ -77,7 +121,7 @@ public class PhotoFrameActivity extends Activity {
      */
     public void startShow() {
         Log.i("PhotoFrameActivity", "starting slideshow");
-        display.run();
+	display.prime();
     }
 
     /**
@@ -143,17 +187,10 @@ public class PhotoFrameActivity extends Activity {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        if (event.getAction() != MotionEvent.ACTION_UP) {
+        if (this.gestureDetector.onTouchEvent(event)) {
             return true;
         }
-        // Log.i("PhotoFrameActivity", "touch event: " + event);
-        for (ReHideSystemUiTask task : uiTasks) {
-            uiHandler.removeCallbacks(task);
-        }
-        ReHideSystemUiTask task = new ReHideSystemUiTask();
-        uiTasks.add(task);
-        uiHandler.postDelayed(task, FULLSCREEN_DELAY);
-        return true;
+        return super.onTouchEvent(event);
     }
 
     class ReHideSystemUiTask implements Runnable {
