@@ -46,7 +46,7 @@ public class Display implements Runnable {
                    final CrossFadeGroup groupA, final CrossFadeGroup groupB,
                    final ShowPlanner showPlanner) {
         this.photoFrameActivity = photoFrameActivity;
-	this.currentPhotoIndex = 0;
+        this.currentPhotoIndex = 0;
         this.groupA = groupA;
         this.groupB = groupB;
         groupB.getFrame().setVisibility(View.GONE);
@@ -60,44 +60,55 @@ public class Display implements Runnable {
      */
     @Override
     public void run() {
-	forward();
+        forward();
     }
 
     public synchronized void prime() {
-	photoQueue.addAll(showPlanner.getPhotosToSchedule(NUM_PHOTOS_TO_PLAN));
-	photoHistory.add(photoQueue.poll());
-	showNextPhoto(photoHistory.getFirst());
+        photoQueue.addAll(showPlanner.getPhotosToSchedule(NUM_PHOTOS_TO_PLAN));
+        photoHistory.add(photoQueue.poll());
+        photoHistory.add(photoQueue.poll());
+        showNextPhoto(photoHistory.get(0), photoHistory.get(1));
     }
 
     public synchronized void forward() {
         // Log.i("Display", "moving forward in photo history");
-	if (currentPhotoIndex == photoHistory.size()-1) {
-	    // Log.i("Display", "fetching next photo from queue");
-	    if (isHistoryFull()) {
-		photoHistory.remove();
-		--currentPhotoIndex;
-	    }
-	    photoHistory.add(photoQueue.poll());
-	} 
+        if (currentPhotoIndex == photoHistory.size()-2) {
+            // Log.i("Display", "fetching next photo from queue");
+            if (isHistoryFull()) {
+                photoHistory.remove();
+                --currentPhotoIndex;
+            }
+            photoHistory.add(photoQueue.poll());
+        }
+        ++currentPhotoIndex;
+        Photo nextPhoto = photoHistory.get(currentPhotoIndex);
+        Photo followingPhoto = photoHistory.get(currentPhotoIndex+1);
+        showNextPhoto(nextPhoto, followingPhoto);
 
-	showNextPhoto(photoHistory.get(++currentPhotoIndex));
-
-	if (isQueueLow()) {
+        if (isQueueLow()) {
             photoQueue.addAll(showPlanner.getPhotosToSchedule(NUM_PHOTOS_TO_PLAN));
         }
     }
 
     public synchronized void backward() {
         // Log.i("Display", "moving backward in photo history");
-	if (currentPhotoIndex > 0) {
-	    showNextPhoto(photoHistory.get(--currentPhotoIndex));
-	}
+        if (currentPhotoIndex > 0) {
+            --currentPhotoIndex;
+            Photo nextPhoto = photoHistory.get(currentPhotoIndex);
+            Photo followingPhoto = null;
+            if (currentPhotoIndex > 0) {
+                followingPhoto = photoHistory.get(currentPhotoIndex-1);
+            }
+            showNextPhoto(nextPhoto, followingPhoto);
+        }
     }
 
-    public void showNextPhoto(final Photo nextPhoto) {
-	Log.i("Display", "showing photo #" + (currentPhotoIndex+1) + " of " + photoHistory.size() + "; there are " + photoQueue.size() + " photos remaining in the queue");
-        Log.i("Display", "nextphoto " + nextPhoto.getUrl());
-	
+    private void showNextPhoto(final Photo nextPhoto, final Photo followingPhoto) {
+        Log.i("Display", "showing photo #" + (currentPhotoIndex+1) + " of " + photoHistory.size() +
+              "; there are " + photoQueue.size() + " photos remaining in the queue");
+        Log.i("Display", "nextPhoto " + nextPhoto.getUrl() + ", followingPhoto " +
+              (followingPhoto == null ? "null" : followingPhoto.getUrl()));
+        
         RequestOptions options = new RequestOptions()
             .fitCenter();
         Glide.with(photoFrameActivity)
@@ -110,15 +121,17 @@ public class Display implements Runnable {
         isCurrentA = !isCurrentA;
 
         // prefetch the following one
-        final Photo followingPhoto = photoQueue.peek();
-        Glide.with(photoFrameActivity)
-            .load(followingPhoto.getUrl())
-            .preload();
+        if (followingPhoto != null) {
+            Glide.with(photoFrameActivity)
+                .load(followingPhoto.getUrl())
+                .preload();
+        }
 
-	// reset timer
-	// Log.i("Display", "next frame in: " + frameDuration);
-	timerHandler.removeCallbacks(this);
+        // reset timer
+        // Log.i("Display", "next frame in: " + frameDuration);
+        timerHandler.removeCallbacks(this);
         timerHandler.postDelayed(this, frameDuration);
+
     }
 
     /**
