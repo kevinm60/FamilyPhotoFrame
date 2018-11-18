@@ -10,6 +10,8 @@
     <string name="login_success">flickr login successful</string>
     <string name="login_failed">flickr login failed</string>
 
+    <string name="indexed_photos">indexed photos</string>
+
     <string name="hello_msg">hello</string>
 
 </resources>

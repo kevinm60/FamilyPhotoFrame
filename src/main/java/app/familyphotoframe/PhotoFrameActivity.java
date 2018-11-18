@@ -57,33 +57,33 @@ public class PhotoFrameActivity extends Activity {
             return true;
         }
 
-	@Override
-	public boolean onSingleTapUp(MotionEvent event) {
-	    // Log.i("PhotoFrameActivity", "onSingleTapUp: " + event.toString());
-	    for (ReHideSystemUiTask task : uiTasks) {
-		uiHandler.removeCallbacks(task);
-	    }
-	    ReHideSystemUiTask task = new ReHideSystemUiTask();
-	    uiTasks.add(task);
-	    uiHandler.postDelayed(task, FULLSCREEN_DELAY);
-	    return true;
-	}
+        @Override
+        public boolean onSingleTapUp(MotionEvent event) {
+            // Log.i("PhotoFrameActivity", "onSingleTapUp: " + event.toString());
+            for (ReHideSystemUiTask task : uiTasks) {
+                uiHandler.removeCallbacks(task);
+            }
+            ReHideSystemUiTask task = new ReHideSystemUiTask();
+            uiTasks.add(task);
+            uiHandler.postDelayed(task, FULLSCREEN_DELAY);
+            return true;
+        }
 
-	@Override
-	public boolean onFling(MotionEvent event1, MotionEvent event2,
-			       float velocityX, float velocityY) {
-	    // Log.i("PhotoFrameActivity", "onFling: " + event1.toString() + event2.toString());
-	    if(event1.getX() - event2.getX() > SWIPE_MIN_DISTANCE &&
-	       Math.abs(velocityX) > SWIPE_THRESHOLD_VELOCITY) {
-		display.forward();
-		return true; // Right to left
-	    } else if (event2.getX() - event1.getX() > SWIPE_MIN_DISTANCE &&
-		       Math.abs(velocityX) > SWIPE_THRESHOLD_VELOCITY) {
-		display.backward();
-		return true; // Left to right
-	    }	
-	    return false;
-	}
+        @Override
+        public boolean onFling(MotionEvent event1, MotionEvent event2,
+                               float velocityX, float velocityY) {
+            // Log.i("PhotoFrameActivity", "onFling: " + event1.toString() + event2.toString());
+            if(event1.getX() - event2.getX() > SWIPE_MIN_DISTANCE &&
+               Math.abs(velocityX) > SWIPE_THRESHOLD_VELOCITY) {
+                display.forward();
+                return true; // Right to left
+            } else if (event2.getX() - event1.getX() > SWIPE_MIN_DISTANCE &&
+                       Math.abs(velocityX) > SWIPE_THRESHOLD_VELOCITY) {
+                display.backward();
+                return true; // Left to right
+            }
+            return false;
+        }
     }
 
     /**
@@ -99,12 +99,12 @@ public class PhotoFrameActivity extends Activity {
 
         hideSystemUI();
 
-	gestureDetector = new GestureDetectorCompat(this, new GestureListener());
+        gestureDetector = new GestureDetectorCompat(this, new GestureListener());
 
         flickr = (FlickrClient) OAuthBaseClient.getInstance(FlickrClient.class, getApplicationContext());
         photoCollection = new PhotoCollection(this, flickr);
 
-        showPlanner = new ShowPlanner(photoCollection);
+        showPlanner = new ShowPlanner(this, photoCollection);
 
         CrossFadeGroup groupA = new CrossFadeGroup((ViewGroup)findViewById(R.id.frameA),
                                                    (ImageView)findViewById(R.id.photoA),
@@ -121,7 +121,7 @@ public class PhotoFrameActivity extends Activity {
      */
     public void startShow() {
         Log.i("PhotoFrameActivity", "starting slideshow");
-	display.prime();
+        display.prime();
     }
 
     /**

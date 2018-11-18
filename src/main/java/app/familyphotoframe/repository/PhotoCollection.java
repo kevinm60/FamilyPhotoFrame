@@ -3,6 +3,7 @@ package app.familyphotoframe.repository;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.NoSuchElementException;
+import java.util.Date;
 import android.util.Log;
 
 import app.familyphotoframe.PhotoFrameActivity;
@@ -29,11 +30,15 @@ public class PhotoCollection {
     /** count of async contact requests in progress */
     private int contactRequestsInProgress = 0;
 
+    /** completion time of last discovery request */
+    private Date timeOfLastDiscovery;
+
     public PhotoCollection(final PhotoFrameActivity photoFrameActivity, final FlickrClient flickr) {
         this.photoFrameActivity = photoFrameActivity;
         this.flickr = flickr;
         contacts = new HashSet<>();
         photos = new HashSet<>();
+        timeOfLastDiscovery = null;
     }
 
     public void startDiscovery() {
@@ -74,6 +79,7 @@ public class PhotoCollection {
         // discovery complete, start slideshow timer
         if (contactRequestsInProgress == 0) {
             Log.i("PhotoCollection", "photo count: " + photos.size());
+            timeOfLastDiscovery = new Date();
             photoFrameActivity.startShow();
         }
     }
@@ -82,8 +88,11 @@ public class PhotoCollection {
         photos.add(photo);
     }
 
-    // TODO getRecentPhotosBy, getOldPhotosBy
     public Set<Photo> getPhotos() {
         return photos;
+    }
+
+    public Date getTimeOfLastDiscovery() {
+        return timeOfLastDiscovery;
     }
 }
