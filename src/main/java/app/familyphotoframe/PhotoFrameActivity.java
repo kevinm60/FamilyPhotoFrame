@@ -44,7 +44,6 @@ public class PhotoFrameActivity extends Activity {
     private ShowPlanner showPlanner;
     private Display display;
     private Handler uiHandler;
-    private Set<ReHideSystemUiTask> uiTasks;
     private SleepCycle sleepCycle;
     final private long FULLSCREEN_DELAY = 2000L;
     final private int SWIPE_MIN_DISTANCE = 120;
@@ -54,18 +53,6 @@ public class PhotoFrameActivity extends Activity {
         @Override
         public boolean onDown(MotionEvent event) {
             // Log.i("PhotoFrameActivity","onDown: " + event.toString());
-            return true;
-        }
-
-        @Override
-        public boolean onSingleTapUp(MotionEvent event) {
-            // Log.i("PhotoFrameActivity", "onSingleTapUp: " + event.toString());
-            for (ReHideSystemUiTask task : uiTasks) {
-                uiHandler.removeCallbacks(task);
-            }
-            ReHideSystemUiTask task = new ReHideSystemUiTask();
-            uiTasks.add(task);
-            uiHandler.postDelayed(task, FULLSCREEN_DELAY);
             return true;
         }
 
@@ -95,7 +82,6 @@ public class PhotoFrameActivity extends Activity {
         setContentView(R.layout.activity_photo_frame);
 
         uiHandler = new Handler();
-        uiTasks = new HashSet<>();
 
         hideSystemUI();
 
@@ -137,7 +123,10 @@ public class PhotoFrameActivity extends Activity {
                                         | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
                                         // Hide the nav bar and status bar
                                         | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                                        | View.SYSTEM_UI_FLAG_FULLSCREEN);
+                                        | View.SYSTEM_UI_FLAG_FULLSCREEN
+                                        // Show the nav and status bars only if user swipes from the
+                                        // top of the screen. 
+                                        | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
     }
 
     protected void onStop() {
@@ -193,11 +182,4 @@ public class PhotoFrameActivity extends Activity {
         return super.onTouchEvent(event);
     }
 
-    class ReHideSystemUiTask implements Runnable {
-        public void run() {
-            // Log.i("PhotoFrameActivity", "rehide system ui now");
-            uiTasks.remove(this);
-            hideSystemUI();
-        }
-    }
 }
