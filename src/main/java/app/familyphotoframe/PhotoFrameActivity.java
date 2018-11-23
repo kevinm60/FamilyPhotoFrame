@@ -58,11 +58,14 @@ public class PhotoFrameActivity extends Activity {
         }
 
         @Override
-        public boolean onSingleTapConfirmed(MotionEvent event) {
+        public boolean onSingleTapUp(MotionEvent event) {
             // Log.i("PhotoFrameActivity", "onSingleTapUp: " + event.toString());
-            clearRehideTasks();
-            configureFullscreenMode(false);
-            scheduleRehideTask();
+            for (ReHideSystemUiTask task : uiTasks) {
+                uiHandler.removeCallbacks(task);
+            }
+            ReHideSystemUiTask task = new ReHideSystemUiTask();
+            uiTasks.add(task);
+            uiHandler.postDelayed(task, FULLSCREEN_DELAY);
             return true;
         }
 
@@ -94,7 +97,7 @@ public class PhotoFrameActivity extends Activity {
         uiHandler = new Handler();
         uiTasks = new HashSet<>();
 
-        configureFullscreenMode(true);
+        hideSystemUI();
 
         gestureDetector = new GestureDetectorCompat(this, new GestureListener());
 
@@ -124,26 +127,17 @@ public class PhotoFrameActivity extends Activity {
     /**
      * full screen the activity.
      */
-    private void configureFullscreenMode(boolean fullscreenMode) {
+    private void hideSystemUI() {
         View decorView = getWindow().getDecorView();
-        int uiVisibilityFlags =
-            // Set the content to appear under the system bars so that the
-            // content doesn't resize when the system bars hide and show.
-            View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-            // Show the system bar only if user swipes from the top edge of
-            // the screen
-            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
-
-        if (fullscreenMode) {
-            // Hide the nav bar and status bar
-            uiVisibilityFlags = uiVisibilityFlags
-                | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                | View.SYSTEM_UI_FLAG_FULLSCREEN;
-        }
-        
-        decorView.setSystemUiVisibility(uiVisibilityFlags);
+        decorView.setSystemUiVisibility(
+                                        // Set the content to appear under the system bars so that the
+                                        // content doesn't resize when the system bars hide and show.
+                                        View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                                        // Hide the nav bar and status bar
+                                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                                        | View.SYSTEM_UI_FLAG_FULLSCREEN);
     }
 
     protected void onStop() {
@@ -158,15 +152,14 @@ public class PhotoFrameActivity extends Activity {
         Log.i("PhotoFrameActivity", "started");
     }
 
-    protected void onResume() {
-        super.onResume();
-        display.resume();
-        Log.i("PhotoFrameActivity", "resumed");
+    protected void onRestart() {
+        super.onRestart();
+        startShow();
+        Log.i("PhotoFrameActivity", "restarted");
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        clearRehideTasks();
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.main_menu, menu);
         return true;
@@ -200,25 +193,11 @@ public class PhotoFrameActivity extends Activity {
         return super.onTouchEvent(event);
     }
 
-    
-    private void clearRehideTasks() {
-        for (ReHideSystemUiTask task : uiTasks) {
-            uiHandler.removeCallbacks(task);
-        }
-    }
-
-    private void scheduleRehideTask() {
-        ReHideSystemUiTask task = new ReHideSystemUiTask();
-        uiTasks.add(task);
-        uiHandler.postDelayed(task, FULLSCREEN_DELAY);
-    }
-
     class ReHideSystemUiTask implements Runnable {
         public void run() {
             // Log.i("PhotoFrameActivity", "rehide system ui now");
             uiTasks.remove(this);
-            configureFullscreenMode(true);
+            hideSystemUI();
         }
     }
-
 }
