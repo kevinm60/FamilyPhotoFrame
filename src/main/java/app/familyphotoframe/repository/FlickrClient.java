@@ -10,6 +10,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.text.ParseException;
 import android.util.Log;
+import java.util.regex.Pattern;
 import android.content.Context;
 import android.content.res.Resources;
 
@@ -60,6 +61,9 @@ public class FlickrClient extends OAuthBaseClient {
     private static final String FLICKR_DESCRIPTION_FIELD = "description";
     private static final String FLICKR_CONTENT_FIELD = "_content";
     private static final String FLICKR_DATE_FORMAT = "y-M-d H:m:s";
+    private static final String NO_SPACES = "^[^ ]+$";
+    private static final String HAS_NUMBERS = ".*[0-9].*";
+    private static final String HAS_DELIMETERS = ".*[\\-_].*";
 
     private static final DateFormat DATE_FORMAT = new SimpleDateFormat(FLICKR_DATE_FORMAT);
 
@@ -251,7 +255,10 @@ public class FlickrClient extends OAuthBaseClient {
                         String dateTakenString = jsonPhoto.getString(FLICKR_DATETAKEN_FIELD);
                         Date dateTaken = DATE_FORMAT.parse(dateTakenString);
                         String title = jsonPhoto.getString(FLICKR_TITLE_FIELD);
-
+                        // blank title if it looks like a filename
+                        if (Pattern.matches(NO_SPACES, title) && Pattern.matches(HAS_NUMBERS, title) && Pattern.matches(HAS_DELIMETERS, title)) {
+                            title = "";
+                        }
                         Photo photo = new Photo(id, secret, serverId, farmId, owner, title, dateTaken);
                         photoCollection.addPhoto(photo);
                     }
