@@ -49,7 +49,7 @@ public class Display implements Runnable {
         this.currentPhotoIndex = 0;
         this.groupA = groupA;
         this.groupB = groupB;
-        groupB.getFrame().setAlpha(0f);
+        groupB.getFrame().setVisibility(View.GONE);
         this.showPlanner = showPlanner;
         FADE_DURATION = photoFrameActivity.getResources().getInteger(android.R.integer.config_longAnimTime);
     }
@@ -108,9 +108,7 @@ public class Display implements Runnable {
               "; there are " + photoQueue.size() + " photos remaining in the queue");
         Log.i("Display", "nextPhoto " + nextPhoto.getUrl() + ", followingPhoto " +
               (followingPhoto == null ? "null" : followingPhoto.getUrl()));
-
-        nextGroup().getFrame().setAlpha(0f);
-
+        
         RequestOptions options = new RequestOptions()
             .fitCenter();
         Glide.with(photoFrameActivity)
@@ -133,20 +131,14 @@ public class Display implements Runnable {
         // Log.i("Display", "next frame in: " + frameDuration);
         timerHandler.removeCallbacks(this);
         timerHandler.postDelayed(this, frameDuration);
+
     }
 
     /**
-     * pause the slideshow
+     * stop the slideshow
      */
     public void pause() {
         timerHandler.removeCallbacks(this);
-    }
-
-    /**
-     * resume the slideshow
-     */
-    public void resume() {
-        timerHandler.postDelayed(this, frameDuration);
     }
 
     public void itsNighttime() {
@@ -174,12 +166,14 @@ public class Display implements Runnable {
     }
 
     private String makePhotoCaption(final Photo photo) {
-        return String.format("%s\n\n%s\n%s\n", photo.getTitle(),
-                             photo.getOwner().getName(),
-                             dateFormat.format(photo.getDateTaken()));
+        return String.format("%s\n%s\n\n%s", photo.getOwner().getName(),
+                             dateFormat.format(photo.getDateTaken()),
+                             photo.getTitle());
     }
 
     private void crossFade(final ViewGroup currentPhotoView, final ViewGroup nextPhotoView) {
+        nextPhotoView.setAlpha(0f);
+        nextPhotoView.setVisibility(View.VISIBLE);
 
         nextPhotoView.animate()
             .alpha(1f)
@@ -189,7 +183,11 @@ public class Display implements Runnable {
         currentPhotoView.animate()
             .alpha(0f)
             .setDuration(FADE_DURATION)
-            .setListener(null);
-
+            .setListener(new AnimatorListenerAdapter() {
+                    @Override
+                    public void onAnimationEnd(Animator animation) {
+                        currentPhotoView.setVisibility(View.GONE);
+                    }
+                });
     }
 }

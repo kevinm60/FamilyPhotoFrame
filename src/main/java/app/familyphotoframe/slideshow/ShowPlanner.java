@@ -22,7 +22,7 @@ import app.familyphotoframe.R;
 public class ShowPlanner {
 
     private static final int numRecencyThresholds = 2;
-    private static final int recencyThresholds[] = {60, 365}; // days
+    static final int recencyThresholds[] = {60, 365}; // days
 
     private static final int numRecencyIntervals = numRecencyThresholds + 1;
     private static final int nominalRelationshipLikelihood[] = {5,3,2}; // indexed by relationship
@@ -102,9 +102,11 @@ public class ShowPlanner {
         }
 
         // Toast
-        Toast.makeText(photoFrameActivity.getApplicationContext(),
-                       R.string.indexed_photos,
-                       Toast.LENGTH_SHORT).show();
+        Toast toast = Toast.makeText(photoFrameActivity.getApplicationContext(),
+                       R.string.indexed_photos, Toast.LENGTH_SHORT);
+        if (toast != null) {
+            toast.show();
+        }
     }
 
 
@@ -147,4 +149,3 @@ public class ShowPlanner {
         return selectedPhotos;
     }
 }
-
