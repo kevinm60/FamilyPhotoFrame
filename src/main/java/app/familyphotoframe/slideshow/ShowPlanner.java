@@ -30,17 +30,7 @@ public class ShowPlanner {
 
     private class IndexElement {
         public LinkedList<Photo> photos;
-    }
-
-    private class GroupInfo {
-        public LinkedList<Photo> photos;
-        public int numSelectedPhotos;
         public int likelihood;
-        public GroupInfo() {
-            photos = new LinkedList<Photo>();
-            numSelectedPhotos = 0;
-            likelihood = 0;
-        }
     }
 
     /** activity with the slideshow */
@@ -90,8 +80,12 @@ public class ShowPlanner {
         photoIndex = new IndexElement[Relationship.length][numRecencyIntervals];
         for (int iRelationship = 0; iRelationship < photoIndex.length; ++iRelationship) {
             for (int iRecency = 0; iRecency < photoIndex[iRelationship].length; ++iRecency) {
-                photoIndex[iRelationship][iRecency] = new IndexElement();
-                photoIndex[iRelationship][iRecency].photos = new LinkedList<Photo>();
+                IndexElement group = new IndexElement();
+                group.photos = new LinkedList<Photo>();
+                group.likelihood =
+                        nominalRelationshipLikelihood[iRelationship] *
+                        nominalRecencyLikelihood[iRecency];
+                photoIndex[iRelationship][iRecency] = group;
             }
         }
 
@@ -127,58 +121,21 @@ public class ShowPlanner {
             indexPhotos(photoCollection.getPhotos());
         }
 
-        // Determine initial list of groups under consideration
-        LinkedList<GroupInfo> groupsUnderConsideration = new LinkedList<GroupInfo>();
-        LinkedList<GroupInfo> exhaustedGroups = new LinkedList<GroupInfo>();
-        int totalLikelihood = 0;
+        // Select photos from each group. The number of photos selected is equal to the
+        // likelihood for the group so that the list of selected photos list will have
+        // the desired distribution
         for (int iRelationship = 0; iRelationship < photoIndex.length; ++iRelationship) {
             for (int iRecency = 0; iRecency < photoIndex[iRelationship].length; ++iRecency) {
-                LinkedList<Photo> groupPhotos = photoIndex[iRelationship][iRecency].photos;
-                if (groupPhotos.size() > 0) {
-                    GroupInfo group = new GroupInfo();
-                    group.photos = groupPhotos;
-                    group.numSelectedPhotos = 0;
-                    group.likelihood =
-                        nominalRelationshipLikelihood[iRelationship] *
-                        nominalRecencyLikelihood[iRecency];
-                    groupsUnderConsideration.add(group);
-                    totalLikelihood += group.likelihood;
-                }
-            }
-        }
-
-        // Select photos from groups based on likelihood
-        int numPhotosToSelect = count;
-        while (numPhotosToSelect > 0 && !groupsUnderConsideration.isEmpty()) {
-            int numSelectedPhotos = 0;
-            for (GroupInfo group : groupsUnderConsideration) {
-                double groupPct = group.likelihood / (double)totalLikelihood;
-                int numAdditionalSelectedPhotos = (int)Math.ceil(groupPct * numPhotosToSelect);
-                int numAvailablePhotos = group.photos.size() - group.numSelectedPhotos;
-                if (numAdditionalSelectedPhotos >= numAvailablePhotos) {
-                    numAdditionalSelectedPhotos = numAvailablePhotos;
-                    exhaustedGroups.add(group);
+                IndexElement group = photoIndex[iRelationship][iRecency];
+                // If there are more than enough photos in a group, shuffle the photos
+                // and select from the beginning. Otherwise select them all.
+                if (group.photos.size() > group.likelihood) {
+                    Collections.shuffle(group.photos);
+                    selectedPhotos.addAll(group.photos.subList(0,group.likelihood));
                 } else {
-                    group.numSelectedPhotos += numAdditionalSelectedPhotos;
+                    selectedPhotos.addAll(group.photos);
                 }
-                numSelectedPhotos += numAdditionalSelectedPhotos;
             }
-
-            // Copy all photos from exhausted groups and remove from groups under consideration
-            for (GroupInfo group : exhaustedGroups) {
-                selectedPhotos.addAll(group.photos);
-                totalLikelihood -= group.likelihood;
-            }
-            groupsUnderConsideration.removeAll(exhaustedGroups);
-            exhaustedGroups.clear();
-            numPhotosToSelect -= numSelectedPhotos;
-        }
-
-        // The remaining groups were not exhausted. For each group, shuffle the contents and select
-        // the desired number of photos
-        for (GroupInfo group : groupsUnderConsideration) {
-            Collections.shuffle(group.photos);
-            selectedPhotos.addAll(group.photos.subList(0,group.numSelectedPhotos));
         }
 
         // Shuffle the list of selected photos, truncate to the requested size and return
