@@ -25,8 +25,8 @@ public class ShowPlanner {
     static final int recencyThresholds[] = {60, 365}; // days
 
     private static final int numRecencyIntervals = numRecencyThresholds + 1;
-    private static final int nominalRelationshipLikelihood[] = {5,3,2}; // indexed by relationship
-    private static final int nominalRecencyLikelihood[] = {5,3,2}; // indexed by recency interval
+    static final int nominalRelationshipLikelihood[] = {5,3,2}; // indexed by relationship
+    static final int nominalRecencyLikelihood[] = {5,3,2}; // indexed by recency interval
 
     private class IndexElement {
         public LinkedList<Photo> photos;
