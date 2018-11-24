@@ -103,7 +103,8 @@ public class ShowPlanner {
 
         // Toast
         Toast toast = Toast.makeText(photoFrameActivity.getApplicationContext(),
-                       R.string.indexed_photos, Toast.LENGTH_SHORT);
+                       R.string.indexed_photos,
+                       Toast.LENGTH_SHORT);
         if (toast != null) {
             toast.show();
         }
