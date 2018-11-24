@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.Date;
 import java.util.Calendar;
 import java.util.Comparator;
+import java.text.DecimalFormat;
 
 import org.junit.*;
 // import org.junit.runner.RunWith;
@@ -50,25 +51,31 @@ public class ShowPlannerTest {
     }
 
     @Test
-    public void recentPhotosHaveHigherShowRates_oneContact() {
-        List<Contact> contacts = generateContacts();
-        Contact adam = contacts.get(0);
+    // public void recentPhotosHaveHigherShowRates_oneContact() {
+    public void photosShownAtExpectedRates() {
+
+        Contact[] contacts =
+            { new Contact("a", "adam", Relationship.SELF),
+              new Contact("b", "beth", Relationship.FAMILY),
+              new Contact("c", "carl", Relationship.FRIEND) };
+
+        Date[] dates =
+            { makeDate(0),
+              makeDate(ShowPlanner.recencyThresholds[0]+1),
+              makeDate(ShowPlanner.recencyThresholds[1]+1) };
+
         Set<Photo> allPhotos = new HashSet<>();
 
-        Date nowDate = makeDate(0);
-        Date medDate = makeDate(ShowPlanner.recencyThresholds[0]+1);
-        Date oldDate = makeDate(ShowPlanner.recencyThresholds[1]+1);
+        int numPhotosPerGroup = 100;
+        for (int i = 0; i<numPhotosPerGroup; ++i) {
+            for (Contact c : contacts) {
+                for (Date d : dates) {
+                    allPhotos.add(new Photo(c.getName() + "_" + d.getTime() + "_" + i,
+                                            null, null, null, c, null, d));
+                }
+            }
+        }
 
-        allPhotos.add(new Photo("a_old_1", null, null, null, adam, null, oldDate));
-        allPhotos.add(new Photo("a_old_2", null, null, null, adam, null, oldDate));
-        allPhotos.add(new Photo("a_old_3", null, null, null, adam, null, oldDate));
-        allPhotos.add(new Photo("a_med_1", null, null, null, adam, null, medDate));
-        allPhotos.add(new Photo("a_med_2", null, null, null, adam, null, medDate));
-        allPhotos.add(new Photo("a_med_3", null, null, null, adam, null, medDate));
-        allPhotos.add(new Photo("a_new_1", null, null, null, adam, null, nowDate));
-        allPhotos.add(new Photo("a_new_2", null, null, null, adam, null, nowDate));
-        allPhotos.add(new Photo("a_new_3", null, null, null, adam, null, nowDate));
-        allPhotos.add(new Photo("a_new_4", null, null, null, adam, null, nowDate));
         when(mockPhotoCollection.getPhotos())
             .thenReturn(allPhotos);
         when(mockPhotoCollection.getTimeOfLastDiscovery())
@@ -81,26 +88,93 @@ public class ShowPlannerTest {
         showPlanner = new ShowPlanner(mockPhotoFrameActivity, mockPhotoCollection);
 
         int numIterations = 10000;
+        int numPhotosPerIteration = 10;
 
         Map<Photo,PickCounter> pickCount = new HashMap<>();
         for (int ii=0; ii<numIterations; ii++) {
-            List<Photo> chosenPhotos = showPlanner.getPhotosToSchedule(5);
+            List<Photo> chosenPhotos = showPlanner.getPhotosToSchedule(numPhotosPerIteration);
             for (Photo photo : chosenPhotos) {
                 if (pickCount.containsKey(photo)) {
                     pickCount.get(photo).increment();
                 } else {
-                    pickCount.put(photo, new PickCounter(photo));
+                    pickCount.put(photo, new PickCounter());
                 }
             }
         }
 
-        validate(pickCount, contacts);
-    }
+        int numExpectedPhotos = allPhotos.size();
+        int numMissingPhotos = numExpectedPhotos - pickCount.size();
+        if (numMissingPhotos > 0) {
+            System.out.println("FAIL: " + numMissingPhotos + " of " + numExpectedPhotos +
+                               " photos were never shown");
+        } else {
+            System.out.println("PASS: all " + numExpectedPhotos + " photos were shown at least once");
+        }
 
-    private List<Contact> generateContacts() {
-        return Arrays.asList(new Contact("a", "adam", Relationship.SELF),
-                             new Contact("b", "beth", Relationship.FAMILY),
-                             new Contact("c", "carl", Relationship.FRIEND));
+        int totalNumPicks = 0;
+        int totalNumPicksByRelationship[] = new int[contacts.length];
+        int totalNumPicksByRecency[] = new int[dates.length];
+        for (Map.Entry<Photo,PickCounter> pair : pickCount.entrySet()) {
+            Photo photo = pair.getKey();
+            int count = pair.getValue().getCounter();
+            int iRelationship = photo.getOwner().getRelationship().getValue();
+            int iRecency;
+            for (iRecency = 0; iRecency < dates.length; ++iRecency) {
+                if (photo.getDateTaken() == dates[iRecency]) {
+                    break;
+                }
+            }
+            totalNumPicks += count;
+            totalNumPicksByRelationship[iRelationship] += count;
+            totalNumPicksByRecency[iRecency] += count;
+        }
+
+        int numExpectedPicks = numIterations * numPhotosPerIteration;
+        if (totalNumPicks != numExpectedPicks) {
+            System.out.println("Warning: totalNumPicks (" + totalNumPicks + ") != " +
+                               " numExpectedPicks(" + numExpectedPicks + "}");
+        }
+
+        DecimalFormat df = new DecimalFormat("#.00");
+        final double tolerance = 0.5;
+
+        int totalRelationshipLikelihood = 0;
+        for (int nominalLikelihood : showPlanner.nominalRelationshipLikelihood)
+            totalRelationshipLikelihood += nominalLikelihood;
+
+        for (int i = 0; i < totalNumPicksByRelationship.length; ++i) {
+            double expectedPercentage = 100.0 * showPlanner.nominalRelationshipLikelihood[i] /
+                totalRelationshipLikelihood;
+            double measuredPercentage = 100.0 * totalNumPicksByRelationship[i] / totalNumPicks;
+            if (Math.abs(expectedPercentage - measuredPercentage) < tolerance) {
+                System.out.print("PASS: ");
+            } else {
+                System.out.print("FAIL: ");
+            }
+            System.out.println(df.format(measuredPercentage) + "% of the photos were taken by " +
+                               contacts[i].getName() + ". " + df.format(expectedPercentage) + "% expected");
+
+            // TODO: print median/min/max count of a photo
+        }
+
+        int totalRecencyLikelihood = 0;
+        for (int nominalLikelihood : showPlanner.nominalRecencyLikelihood)
+            totalRecencyLikelihood += nominalLikelihood;
+
+        for (int i = 0; i < totalNumPicksByRecency.length; ++i) {
+            double expectedPercentage = 100.0 * showPlanner.nominalRecencyLikelihood[i] /
+                totalRecencyLikelihood;
+            double measuredPercentage = 100.0 * totalNumPicksByRecency[i] / totalNumPicks;
+            if (Math.abs(expectedPercentage - measuredPercentage) < tolerance) {
+                System.out.print("PASS: ");
+            } else {
+                System.out.print("FAIL: ");
+            }
+            System.out.println(df.format(measuredPercentage) + "% of the photos were taken on " +
+                               dates[i] + ". " + df.format(expectedPercentage) + "% expected");
+
+            // TODO: print median/min/max count of a photo
+        }
     }
 
     private Date makeDate(final int daysAgo) {
@@ -109,39 +183,11 @@ public class ShowPlannerTest {
         return new Date(calendar.getTime().getTime());
     }
 
-    private void validate(final Map<Photo,PickCounter> pickCount, final List<Contact> contacts) {
-        // order from newest to oldest
-        List<PickCounter> orderByDate = new ArrayList(pickCount.values());
-        orderByDate.sort(new DateComparator());
-
-        System.out.println("contact, photoId, date taken, count");
-        for (Contact contact : contacts) {
-            boolean foundMed = false;
-            boolean foundNow = false;
-            for (PickCounter pickCounter : orderByDate) {
-                // check photos from each contact separately
-                if (!pickCounter.getPhoto().getOwner().equals(contact)) {
-                    continue;
-                }
-                System.out.println(contact.getName() + ", "
-                                   + pickCounter.getPhoto().getId() + ", "
-                                   + pickCounter.getPhoto().getDateTaken() + ", "
-                                   + pickCounter.getCounter());
-            }
-        }
-    }
-
     class PickCounter {
-        private Photo photo;
         private int counter;
 
-        public PickCounter(Photo photo) {
-            this.photo = photo;
+        public PickCounter() {
             counter = 1;
-        }
-
-        public Photo getPhoto() {
-            return photo;
         }
 
         public int getCounter() {
@@ -150,17 +196,6 @@ public class ShowPlannerTest {
 
         public void increment() {
             counter++;
-        }
-
-    }
-
-    class DateComparator implements Comparator<PickCounter> {
-        public int compare(PickCounter o1, PickCounter o2) {
-            return o2.getPhoto().getDateTaken().compareTo(o1.getPhoto().getDateTaken());
-        }
-
-        public boolean equals(Object obj) {
-            return false;
         }
     }
 }
