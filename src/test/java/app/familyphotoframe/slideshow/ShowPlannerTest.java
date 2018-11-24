@@ -50,8 +50,10 @@ public class ShowPlannerTest {
         MockitoAnnotations.initMocks(this);
     }
 
+    // TODO: Add test for cases where fewer photos are available (groups are
+    //       empty or only partially populated)
+    
     @Test
-    // public void recentPhotosHaveHigherShowRates_oneContact() {
     public void photosShownAtExpectedRates() {
 
         Contact[] contacts =
