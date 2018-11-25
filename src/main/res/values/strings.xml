@@ -3,6 +3,7 @@
 
     <string name="app_name">FamilyPhotoFrame</string>
     <string name="menu_settings">settings</string>
+    <string name="action_synchronize">synchronize</string>
     <string name="action_logout">logout</string>
 
     <string name="login_mesg">you must login to your Flickr account to access your photos.</string>
@@ -10,7 +11,8 @@
     <string name="login_success">flickr login successful</string>
     <string name="login_failed">flickr login failed</string>
 
-    <string name="indexed_photos">indexed photos</string>
+    <string name="insufficient_photos">There is an insufficient number of photos to run the slideshow</string>
+    <string name="sync_to_db">photos are up to date</string>
 
     <string name="hello_msg">hello</string>
 

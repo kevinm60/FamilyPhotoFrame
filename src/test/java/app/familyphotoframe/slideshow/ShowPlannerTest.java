@@ -22,8 +22,6 @@ import org.mockito.Mock;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
-import android.widget.Toast;
-
 import app.familyphotoframe.model.Photo;
 import app.familyphotoframe.model.Contact;
 import app.familyphotoframe.model.Relationship;
@@ -31,16 +29,10 @@ import app.familyphotoframe.repository.PhotoCollection;
 import app.familyphotoframe.PhotoFrameActivity;
 
 // @RunWith(PowerMockRunner.class)
-// @PrepareForTest(Toast.class)
 public class ShowPlannerTest {
     @Mock
     PhotoCollection mockPhotoCollection;
 
-    @Mock
-    PhotoFrameActivity mockPhotoFrameActivity;
-
-    // @Mock
-    // Toast mockToast;
 
     /** object under test */
     ShowPlanner showPlanner;
@@ -82,12 +74,8 @@ public class ShowPlannerTest {
             .thenReturn(allPhotos);
         when(mockPhotoCollection.getTimeOfLastDiscovery())
             .thenReturn(makeDate(-1));
-        // PowerMockito.mockStatic(Toast.class);
-        // PowerMockito.when(Toast.makeText(Matchers.<TestActivity>anyObject(),
-        //                                  Mockito.anyString(), Mockito.anyShort()))
-        //     .thenReturn(mockToast);
 
-        showPlanner = new ShowPlanner(mockPhotoFrameActivity, mockPhotoCollection);
+        showPlanner = new ShowPlanner(mockPhotoCollection);
 
         int numIterations = 10000;
         int numPhotosPerIteration = 10;

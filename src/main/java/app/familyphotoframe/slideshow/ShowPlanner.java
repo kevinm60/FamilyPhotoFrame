@@ -8,13 +8,10 @@ import java.util.List;
 import java.util.Date;
 import java.util.Set;
 import android.util.Log;
-import android.widget.Toast;
 
-import app.familyphotoframe.PhotoFrameActivity;
 import app.familyphotoframe.repository.PhotoCollection;
 import app.familyphotoframe.model.Photo;
 import app.familyphotoframe.model.Relationship;
-import app.familyphotoframe.R;
 
 /**
  * chooses the photos for the next time period
@@ -33,9 +30,6 @@ public class ShowPlanner {
         public int likelihood;
     }
 
-    /** activity with the slideshow */
-    private PhotoFrameActivity photoFrameActivity;
-
     /** collection of photos */
     private PhotoCollection photoCollection;
 
@@ -46,9 +40,7 @@ public class ShowPlanner {
     private Date timeOfLastIndex;
 
 
-    public ShowPlanner(final PhotoFrameActivity photoFrameActivity,
-                       final PhotoCollection photoCollection) {
-        this.photoFrameActivity = photoFrameActivity;
+    public ShowPlanner(final PhotoCollection photoCollection) {
         this.photoCollection = photoCollection;
         photoIndex = null;  // created in indexPhotos
 
@@ -99,14 +91,6 @@ public class ShowPlanner {
                 }
             }
             photoIndex[iRelationship][iRecency].photos.add(photo);
-        }
-
-        // Toast
-        Toast toast = Toast.makeText(photoFrameActivity.getApplicationContext(),
-                       R.string.indexed_photos,
-                       Toast.LENGTH_SHORT);
-        if (toast != null) {
-            toast.show();
         }
     }
 

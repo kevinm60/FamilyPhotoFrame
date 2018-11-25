@@ -7,6 +7,8 @@ import java.util.HashSet;
 import android.content.res.Resources;
 
 import android.app.Activity;
+import android.app.ActionBar;
+import android.app.ActionBar.OnMenuVisibilityListener;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.os.Bundle;
@@ -98,19 +100,49 @@ public class PhotoFrameActivity extends Activity {
 
         gestureDetector = new GestureDetectorCompat(this, new GestureListener());
 
+        getActionBar().addOnMenuVisibilityListener(
+            new ActionBar.OnMenuVisibilityListener() {
+                @Override
+                public void onMenuVisibilityChanged (boolean isVisible) {
+                    if (isVisible) {
+                        clearRehideTasks();
+                    } else {
+                        configureFullscreenMode(true);
+                    }
+                }
+            });
+
         flickr = (FlickrClient) OAuthBaseClient.getInstance(FlickrClient.class, getApplicationContext());
         photoCollection = new PhotoCollection(this, flickr);
 
-        showPlanner = new ShowPlanner(this, photoCollection);
+        showPlanner = new ShowPlanner(photoCollection);
 
+        TextView textInsufficientPhotos = (TextView)findViewById(R.id.textInsufficientPhotos);
         CrossFadeGroup groupA = new CrossFadeGroup((ViewGroup)findViewById(R.id.frameA),
                                                    (ImageView)findViewById(R.id.photoA),
                                                    (TextView)findViewById(R.id.captionA));
         CrossFadeGroup groupB = new CrossFadeGroup((ViewGroup)findViewById(R.id.frameB),
                                                    (ImageView)findViewById(R.id.photoB),
                                                    (TextView)findViewById(R.id.captionB));
-        display = new Display(this, groupA, groupB, showPlanner);
+        display = new Display(this, textInsufficientPhotos, groupA, groupB, showPlanner);
         sleepCycle = new SleepCycle(getWindow(), uiHandler, display, photoCollection);
+
+        sleepCycle.init(); // initiate discovery
+
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        display.pause();
+        Log.i("PhotoFrameActivity", "stopped");
+    }
+
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        display.resume();
+        Log.i("PhotoFrameActivity", "restarted");
     }
 
     /**
@@ -144,29 +176,11 @@ public class PhotoFrameActivity extends Activity {
         }
         
         decorView.setSystemUiVisibility(uiVisibilityFlags);
-    }
 
-    protected void onStop() {
-        super.onStop();
-        display.pause();
-        Log.i("PhotoFrameActivity", "stopped");
-    }
-
-    protected void onStart() {
-        super.onStart();
-        sleepCycle.init();
-        Log.i("PhotoFrameActivity", "started");
-    }
-
-    protected void onResume() {
-        super.onResume();
-        display.resume();
-        Log.i("PhotoFrameActivity", "resumed");
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        clearRehideTasks();
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.main_menu, menu);
         return true;
@@ -176,6 +190,9 @@ public class PhotoFrameActivity extends Activity {
     public boolean onOptionsItemSelected(MenuItem item) {
         Log.i("PhotoFrameActivity", "menu selected");
         switch (item.getItemId()) {
+        case R.id.action_synchronize:
+            photoCollection.startDiscovery();
+            return true;
         case R.id.action_logout:
             logout();
             return true;

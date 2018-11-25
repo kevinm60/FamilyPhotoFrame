@@ -5,10 +5,12 @@ import java.util.HashSet;
 import java.util.NoSuchElementException;
 import java.util.Date;
 import android.util.Log;
+import android.widget.Toast;
 
 import app.familyphotoframe.PhotoFrameActivity;
 import app.familyphotoframe.model.Contact;
 import app.familyphotoframe.model.Photo;
+import app.familyphotoframe.R;
 
 /**
  * holds all of the photos of the logged in user as well as their contacts shared photos
@@ -33,15 +35,23 @@ public class PhotoCollection {
     /** completion time of last discovery request */
     private Date timeOfLastDiscovery;
 
+    /** indicates discovery is in progress */
+    private boolean discoveryInProgress;
+
     public PhotoCollection(final PhotoFrameActivity photoFrameActivity, final FlickrClient flickr) {
         this.photoFrameActivity = photoFrameActivity;
         this.flickr = flickr;
         contacts = new HashSet<>();
         photos = new HashSet<>();
         timeOfLastDiscovery = null;
+        discoveryInProgress = false;
     }
 
-    public void startDiscovery() {
+    public synchronized void startDiscovery() {
+        if (discoveryInProgress) {
+            return;
+        }
+        discoveryInProgress = true;
         flickr.lookupProfile(this);
         contacts.clear();
         photos.clear();
@@ -76,10 +86,16 @@ public class PhotoCollection {
             contactRequestsInProgress--;
             Log.d("PhotoCollection", "completed contactRequest, num in progress: " + contactRequestsInProgress);
 
-        // discovery complete, start slideshow timer
+        // discovery complete, start slideshow
         if (contactRequestsInProgress == 0) {
             Log.i("PhotoCollection", "photo count: " + photos.size());
             timeOfLastDiscovery = new Date();
+            discoveryInProgress = false;
+
+            Toast.makeText(this.photoFrameActivity.getApplicationContext(),
+                           R.string.sync_to_db,
+                           Toast.LENGTH_SHORT).show();
+
             photoFrameActivity.startShow();
         }
     }

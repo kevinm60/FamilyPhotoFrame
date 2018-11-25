@@ -23,6 +23,7 @@ import app.familyphotoframe.model.CrossFadeGroup;
  * this is the slideshow thread.
  */
 public class Display implements Runnable {
+    final private int MIN_SLIDESHOW_SIZE = 2;
     final private int MIN_QUEUE_SIZE = 3;
     final private int MAX_HISTORY_SIZE = 100;
     final private int NUM_PHOTOS_TO_PLAN = 10;
@@ -37,20 +38,27 @@ public class Display implements Runnable {
     final private LinkedList<Photo> photoQueue = new LinkedList<>();
     final private LinkedList<Photo> photoHistory = new LinkedList<>();
     private int currentPhotoIndex;
+    final private TextView textInsufficientPhotos;
     final private CrossFadeGroup groupA;
     final private CrossFadeGroup groupB;
     private boolean isCurrentA = true;
+    private boolean slideshowReady;
     private int frameDuration = FRAME_DURATION_DAY;
 
     public Display(final Activity photoFrameActivity,
+                   final TextView textInsufficientPhotos,
                    final CrossFadeGroup groupA, final CrossFadeGroup groupB,
                    final ShowPlanner showPlanner) {
         this.photoFrameActivity = photoFrameActivity;
         this.currentPhotoIndex = 0;
+        this.textInsufficientPhotos = textInsufficientPhotos;
+        textInsufficientPhotos.setVisibility(View.GONE);
         this.groupA = groupA;
+        groupA.getFrame().setAlpha(0f);
         this.groupB = groupB;
         groupB.getFrame().setAlpha(0f);
         this.showPlanner = showPlanner;
+        this.slideshowReady = false;
         FADE_DURATION = photoFrameActivity.getResources().getInteger(android.R.integer.config_longAnimTime);
     }
 
@@ -64,15 +72,28 @@ public class Display implements Runnable {
     }
 
     public synchronized void prime() {
+        // only need to prime once. ignore subsequent calls
+        if (slideshowReady) {
+            return;
+        }
         photoQueue.addAll(showPlanner.getPhotosToSchedule(NUM_PHOTOS_TO_PLAN));
+        if (photoQueue.size() < MIN_SLIDESHOW_SIZE) {
+            textInsufficientPhotos.setVisibility(View.VISIBLE);
+            return;
+        }
+        textInsufficientPhotos.setVisibility(View.GONE);
         photoHistory.add(photoQueue.poll());
         photoHistory.add(photoQueue.poll());
         showNextPhoto(photoHistory.get(0), photoHistory.get(1));
+        slideshowReady = true;
     }
 
     public synchronized void forward() {
+        if (!slideshowReady) {
+            return;
+        }
         // Log.i("Display", "moving forward in photo history");
-        if (currentPhotoIndex == photoHistory.size()-2) {
+        if (currentPhotoIndex == photoHistory.size()-MIN_SLIDESHOW_SIZE) {
             // Log.i("Display", "fetching next photo from queue");
             if (isHistoryFull()) {
                 photoHistory.remove();
@@ -91,6 +112,9 @@ public class Display implements Runnable {
     }
 
     public synchronized void backward() {
+        if (!slideshowReady) {
+            return;
+        }
         // Log.i("Display", "moving backward in photo history");
         if (currentPhotoIndex > 0) {
             --currentPhotoIndex;

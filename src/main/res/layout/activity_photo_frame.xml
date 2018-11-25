@@ -4,11 +4,18 @@
    android:keepScreenOn="true"
    android:orientation="vertical" >
 
+    <TextView
+        android:id="@+id/textInsufficientPhotos"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:text="@string/insufficient_photos"
+        style="@style/OverlayText" />
+
     <FrameLayout
         android:id="@+id/frameA"
         android:layout_width="match_parent"
         android:layout_height="match_parent" >
-
         <ImageView
             android:id="@+id/photoA"
             android:layout_width="match_parent"
@@ -36,4 +43,5 @@
             android:layout_gravity="bottom"
             style="@style/OverlayText" />
     </FrameLayout>
+
 </FrameLayout>
