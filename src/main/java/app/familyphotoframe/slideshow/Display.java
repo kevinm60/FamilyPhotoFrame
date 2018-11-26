@@ -43,6 +43,7 @@ public class Display implements Runnable {
     final private CrossFadeGroup groupB;
     private boolean isCurrentA = true;
     private boolean slideshowReady;
+    private boolean slideshowIsRunning;
     private int frameDuration = FRAME_DURATION_DAY;
 
     public Display(final Activity photoFrameActivity,
@@ -59,6 +60,7 @@ public class Display implements Runnable {
         groupB.getFrame().setAlpha(0f);
         this.showPlanner = showPlanner;
         this.slideshowReady = false;
+        this.slideshowIsRunning = false;
         FADE_DURATION = photoFrameActivity.getResources().getInteger(android.R.integer.config_longAnimTime);
     }
 
@@ -86,6 +88,7 @@ public class Display implements Runnable {
         photoHistory.add(photoQueue.poll());
         showNextPhoto(photoHistory.get(0), photoHistory.get(1));
         slideshowReady = true;
+        slideshowIsRunning = true;
     }
 
     public synchronized void forward() {
@@ -153,24 +156,34 @@ public class Display implements Runnable {
                 .preload();
         }
 
-        // reset timer
-        // Log.i("Display", "next frame in: " + frameDuration);
-        timerHandler.removeCallbacks(this);
-        timerHandler.postDelayed(this, frameDuration);
+        if (slideshowIsRunning) {
+            // reset timer
+            // Log.i("Display", "next frame in: " + frameDuration);
+            timerHandler.removeCallbacks(this);
+            timerHandler.postDelayed(this, frameDuration);
+        }
     }
 
     /**
      * pause the slideshow
      */
     public void pause() {
+        Log.i("Display", "pause slideshow");
         timerHandler.removeCallbacks(this);
+        slideshowIsRunning = false;
     }
 
     /**
      * resume the slideshow
      */
     public void resume() {
+        Log.i("Display", "resume slideshow");
         timerHandler.postDelayed(this, frameDuration);
+        slideshowIsRunning = true;
+    }
+
+    public boolean isSlideshowRunning() {
+        return slideshowIsRunning;
     }
 
     public void itsNighttime() {

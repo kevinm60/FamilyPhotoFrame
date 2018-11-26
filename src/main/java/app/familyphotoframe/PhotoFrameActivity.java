@@ -9,12 +9,14 @@ import android.content.res.Resources;
 import android.app.Activity;
 import android.app.ActionBar;
 import android.app.ActionBar.OnMenuVisibilityListener;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -23,7 +25,6 @@ import android.view.MotionEvent;
 import android.view.GestureDetector;
 import android.view.GestureDetector.SimpleOnGestureListener;
 import android.support.v4.view.GestureDetectorCompat;
-
 
 import com.codepath.oauth.OAuthBaseClient;
 import com.bumptech.glide.Glide;
@@ -41,6 +42,9 @@ import app.familyphotoframe.slideshow.SleepCycle;
 public class PhotoFrameActivity extends Activity {
 
     private GestureDetectorCompat gestureDetector;
+    private int playDrawableId;
+    private int pauseDrawableId;
+    private ImageButton playPauseButton;
     private FlickrClient flickr;
     private PhotoCollection photoCollection;
     private ShowPlanner showPlanner;
@@ -96,8 +100,6 @@ public class PhotoFrameActivity extends Activity {
         uiHandler = new Handler();
         uiTasks = new HashSet<>();
 
-        configureFullscreenMode(true);
-
         gestureDetector = new GestureDetectorCompat(this, new GestureListener());
 
         getActionBar().addOnMenuVisibilityListener(
@@ -111,6 +113,26 @@ public class PhotoFrameActivity extends Activity {
                     }
                 }
             });
+
+        playDrawableId = getResources().getIdentifier("ic_media_play", "drawable", getPackageName());
+        pauseDrawableId = getResources().getIdentifier("ic_media_pause", "drawable", getPackageName());
+        playPauseButton = (ImageButton) findViewById(R.id.buttonPlayPause);
+        playPauseButton.setImageResource(pauseDrawableId);
+        playPauseButton.setOnClickListener(
+            new OnClickListener() {
+                @Override
+                public void onClick(View arg0) {
+                    if (display.isSlideshowRunning()) {
+                        display.pause();
+                        playPauseButton.setImageResource(playDrawableId);
+                    } else {
+                        display.resume();
+                        playPauseButton.setImageResource(pauseDrawableId);
+                    }
+                }
+            });
+
+        configureFullscreenMode(true);
 
         flickr = (FlickrClient) OAuthBaseClient.getInstance(FlickrClient.class, getApplicationContext());
         photoCollection = new PhotoCollection(this, flickr);
@@ -135,6 +157,7 @@ public class PhotoFrameActivity extends Activity {
     protected void onStop() {
         super.onStop();
         display.pause();
+        playPauseButton.setImageResource(playDrawableId);
         Log.i("PhotoFrameActivity", "stopped");
     }
 
@@ -142,6 +165,7 @@ public class PhotoFrameActivity extends Activity {
     protected void onRestart() {
         super.onRestart();
         display.resume();
+        playPauseButton.setImageResource(pauseDrawableId);
         Log.i("PhotoFrameActivity", "restarted");
     }
 
@@ -173,6 +197,10 @@ public class PhotoFrameActivity extends Activity {
             uiVisibilityFlags = uiVisibilityFlags
                 | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                 | View.SYSTEM_UI_FLAG_FULLSCREEN;
+
+            playPauseButton.setVisibility(View.GONE);
+        } else {
+            playPauseButton.setVisibility(View.VISIBLE);
         }
         
         decorView.setSystemUiVisibility(uiVisibilityFlags);

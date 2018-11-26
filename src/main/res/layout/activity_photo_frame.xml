@@ -12,6 +12,12 @@
         android:text="@string/insufficient_photos"
         style="@style/OverlayText" />
 
+    <ImageButton
+        android:id="@+id/buttonPlayPause"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|right" />
+
     <FrameLayout
         android:id="@+id/frameA"
         android:layout_width="match_parent"
