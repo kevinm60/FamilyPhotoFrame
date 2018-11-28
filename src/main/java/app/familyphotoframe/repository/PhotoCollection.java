@@ -49,6 +49,7 @@ public class PhotoCollection {
 
     public synchronized void startDiscovery() {
         if (discoveryInProgress) {
+            Log.i("PhotoCollection", "discovery already in progress, not restarting");
             return;
         }
         discoveryInProgress = true;

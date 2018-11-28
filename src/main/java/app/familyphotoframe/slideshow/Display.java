@@ -86,16 +86,17 @@ public class Display implements Runnable {
         textInsufficientPhotos.setVisibility(View.GONE);
         photoHistory.add(photoQueue.poll());
         photoHistory.add(photoQueue.poll());
-        showNextPhoto(photoHistory.get(0), photoHistory.get(1));
         slideshowReady = true;
         slideshowIsRunning = true;
+        showNextPhoto(photoHistory.get(0), photoHistory.get(1));
     }
 
     public synchronized void forward() {
         if (!slideshowReady) {
+            Log.i("Display", "slidesow not ready, not going forward");
             return;
         }
-        // Log.i("Display", "moving forward in photo history");
+
         if (currentPhotoIndex == photoHistory.size()-MIN_SLIDESHOW_SIZE) {
             // Log.i("Display", "fetching next photo from queue");
             if (isHistoryFull()) {
@@ -116,6 +117,7 @@ public class Display implements Runnable {
 
     public synchronized void backward() {
         if (!slideshowReady) {
+            Log.i("Display", "slidesow not ready, not going backward");
             return;
         }
         // Log.i("Display", "moving backward in photo history");
@@ -130,6 +132,7 @@ public class Display implements Runnable {
         }
     }
 
+    // only called by synchronized methods
     private void showNextPhoto(final Photo nextPhoto, final Photo followingPhoto) {
         Log.i("Display", "showing photo #" + (currentPhotoIndex+1) + " of " + photoHistory.size() +
               "; there are " + photoQueue.size() + " photos remaining in the queue");
@@ -167,7 +170,7 @@ public class Display implements Runnable {
     /**
      * pause the slideshow
      */
-    public void pause() {
+    public synchronized void pause() {
         Log.i("Display", "pause slideshow");
         timerHandler.removeCallbacks(this);
         slideshowIsRunning = false;
@@ -176,7 +179,7 @@ public class Display implements Runnable {
     /**
      * resume the slideshow
      */
-    public void resume() {
+    public synchronized void resume() {
         Log.i("Display", "resume slideshow");
         timerHandler.postDelayed(this, frameDuration);
         slideshowIsRunning = true;
