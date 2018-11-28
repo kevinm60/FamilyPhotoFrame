@@ -22,7 +22,7 @@ public class ShowPlanner {
     static final int recencyThresholds[] = {60, 365}; // days
 
     private static final int numRecencyIntervals = numRecencyThresholds + 1;
-    static final int nominalRelationshipLikelihood[] = {5,3,2}; // indexed by relationship
+    static final int nominalRelationshipLikelihood[] = {5,3,2,0}; // indexed by relationship
     static final int nominalRecencyLikelihood[] = {5,3,2}; // indexed by recency interval
 
     private class IndexElement {

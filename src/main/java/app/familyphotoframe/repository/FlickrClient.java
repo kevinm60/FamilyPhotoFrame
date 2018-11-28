@@ -212,6 +212,8 @@ public class FlickrClient extends OAuthBaseClient {
                             relationship = Relationship.FAMILY;
                         } else if (jsonContact.getInt(FLICKR_FRIEND_FIELD) == 1) {
                             relationship = Relationship.FRIEND;
+                        } else {
+                            relationship = Relationship.STRANGER;
                         }
                         contacts.add(new Contact(userId, name, relationship));
                     }
