@@ -76,11 +76,14 @@ public class Display implements Runnable {
     public synchronized void prime() {
         // only need to prime once. ignore subsequent calls
         if (slideshowReady) {
+            Log.i("Display", "slideshow is ready, no need to prime");
+            showNextPhoto(photoHistory.get(0), photoHistory.get(1));
             return;
         }
         photoQueue.addAll(showPlanner.getPhotosToSchedule(NUM_PHOTOS_TO_PLAN));
         if (photoQueue.size() < MIN_SLIDESHOW_SIZE) {
             textInsufficientPhotos.setVisibility(View.VISIBLE);
+            Log.i("Display", "insufficient photos");
             return;
         }
         textInsufficientPhotos.setVisibility(View.GONE);

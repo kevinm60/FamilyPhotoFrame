@@ -35,7 +35,7 @@ public class SleepCycle {
 
     public void init() {
         if (isDaytime()) {
-            wake();
+            wake(); // wake starts discovery so we don't need to do it here
         } else {
             sleep();
             photoCollection.startDiscovery();
