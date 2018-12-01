@@ -164,7 +164,7 @@ public class Display implements Runnable {
 
         if (slideshowIsRunning) {
             // reset timer
-            // Log.i("Display", "next frame in: " + frameDuration);
+            Log.i("Display", "next frame in: " + frameDuration);
             timerHandler.removeCallbacks(this);
             timerHandler.postDelayed(this, frameDuration);
         }

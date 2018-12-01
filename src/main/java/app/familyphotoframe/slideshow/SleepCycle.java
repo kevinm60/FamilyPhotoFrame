@@ -46,7 +46,7 @@ public class SleepCycle {
      * stop the slideshow and turn the screen off
      */
     public void sleep() {
-        Log.i("PhotoFrameActivity", "begin sleep");
+        Log.i("SleepCycle", "begin sleep");
         display.itsNighttime();
         setScreenBrightness(WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_OFF);
         uiHandler.postAtTime(new WakeTask(), tomorrowMorning());
@@ -56,7 +56,7 @@ public class SleepCycle {
      * turn the screen on and resume the slideshow
      */
     public void wake() {
-        Log.i("PhotoFrameActivity", "begin wake");
+        Log.i("SleepCycle", "begin wake");
         display.pause(); // stop the slideshow
         photoCollection.startDiscovery(); // this will restart the slideshow when done
         display.itsDaytime();
@@ -76,7 +76,7 @@ public class SleepCycle {
         then.set(Calendar.MINUTE, 0);
         then.set(Calendar.SECOND, 0);
         then.set(Calendar.MILLISECOND, 0);
-        Log.i("PhotoFrameActivity", "sleep thisNight: " + new SimpleDateFormat().format(then.getTime()));
+        Log.i("SleepCycle", "sleep thisNight: " + new SimpleDateFormat().format(then.getTime()));
         return SystemClock.uptimeMillis() + then.getTimeInMillis() - now.getTimeInMillis() ;
     }
 
@@ -84,13 +84,13 @@ public class SleepCycle {
         Calendar now = Calendar.getInstance();
         Calendar then = Calendar.getInstance();
         if (then.get(Calendar.AM_PM) == Calendar.PM) {
-            then.roll(Calendar.DATE, 1);
+            then.add(Calendar.DATE, 1);
         }
         then.set(Calendar.HOUR_OF_DAY, WAKE_HOUR);
         then.set(Calendar.MINUTE, 0);
         then.set(Calendar.SECOND, 0);
         then.set(Calendar.MILLISECOND, 0);
-        Log.i("PhotoFrameActivity", "wake tomorrowMorning: " + new SimpleDateFormat().format(then.getTime()));
+        Log.i("SleepCycle", "wake tomorrowMorning: " + new SimpleDateFormat().format(then.getTime()));
         return SystemClock.uptimeMillis() + then.getTimeInMillis() - now.getTimeInMillis() ;
     }
 
