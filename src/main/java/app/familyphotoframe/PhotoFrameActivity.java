@@ -175,6 +175,7 @@ public class PhotoFrameActivity extends Activity {
     public void startShow() {
         Log.i("PhotoFrameActivity", "starting slideshow");
         display.prime();
+        display.resume();
     }
 
     /**
@@ -202,7 +203,7 @@ public class PhotoFrameActivity extends Activity {
         } else {
             playPauseButton.setVisibility(View.VISIBLE);
         }
-        
+
         decorView.setSystemUiVisibility(uiVisibilityFlags);
 
     }
@@ -245,7 +246,7 @@ public class PhotoFrameActivity extends Activity {
         return super.onTouchEvent(event);
     }
 
-    
+
     private void clearRehideTasks() {
         for (ReHideSystemUiTask task : uiTasks) {
             uiHandler.removeCallbacks(task);
