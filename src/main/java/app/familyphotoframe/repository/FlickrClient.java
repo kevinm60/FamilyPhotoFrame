@@ -176,6 +176,7 @@ public class FlickrClient extends OAuthBaseClient {
         }
         public void onFailure(int statusCode, Header[] headers, Throwable err, JSONObject json) {
             Log.e("FlickrClient", "fail: " + err);
+            photoCollection.reportDiscoveryFailure();
         }
     }
 
@@ -221,7 +222,7 @@ public class FlickrClient extends OAuthBaseClient {
             photoCollection.addContactsAndContinueDiscovery(contacts);
         }
         public void onFailure(int statusCode, Header[] headers, Throwable err, JSONObject json) {
-            Log.e("FlickrClient", "fail: " + err);
+            photoCollection.reportDiscoveryFailure();
         }
     }
 

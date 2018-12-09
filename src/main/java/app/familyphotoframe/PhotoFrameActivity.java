@@ -30,10 +30,11 @@ import com.codepath.oauth.OAuthBaseClient;
 import com.bumptech.glide.Glide;
 import app.familyphotoframe.repository.FlickrClient;
 import app.familyphotoframe.repository.PhotoCollection;
-import app.familyphotoframe.slideshow.Display;
 import app.familyphotoframe.model.CrossFadeGroup;
+import app.familyphotoframe.slideshow.Display;
 import app.familyphotoframe.slideshow.ShowPlanner;
 import app.familyphotoframe.slideshow.SleepCycle;
+import app.familyphotoframe.exception.DiscoveryFailureException;
 
 
 /**
@@ -78,7 +79,11 @@ public class PhotoFrameActivity extends Activity {
             // Log.i("PhotoFrameActivity", "onFling: " + event1.toString() + event2.toString());
             if(event1.getX() - event2.getX() > SWIPE_MIN_DISTANCE &&
                Math.abs(velocityX) > SWIPE_THRESHOLD_VELOCITY) {
-                display.forward();
+                try {
+                    display.forward();
+                } catch (DiscoveryFailureException e) {
+                    // can't happen here
+                }
                 return true; // Right to left
             } else if (event2.getX() - event1.getX() > SWIPE_MIN_DISTANCE &&
                        Math.abs(velocityX) > SWIPE_THRESHOLD_VELOCITY) {
@@ -139,18 +144,17 @@ public class PhotoFrameActivity extends Activity {
 
         showPlanner = new ShowPlanner(photoCollection);
 
-        TextView textInsufficientPhotos = (TextView)findViewById(R.id.textInsufficientPhotos);
+        TextView messageView = (TextView)findViewById(R.id.messageView);
         CrossFadeGroup groupA = new CrossFadeGroup((ViewGroup)findViewById(R.id.frameA),
                                                    (ImageView)findViewById(R.id.photoA),
                                                    (TextView)findViewById(R.id.captionA));
         CrossFadeGroup groupB = new CrossFadeGroup((ViewGroup)findViewById(R.id.frameB),
                                                    (ImageView)findViewById(R.id.photoB),
                                                    (TextView)findViewById(R.id.captionB));
-        display = new Display(this, textInsufficientPhotos, groupA, groupB, showPlanner);
+        display = new Display(this, messageView, groupA, groupB, showPlanner);
         sleepCycle = new SleepCycle(getWindow(), uiHandler, display, photoCollection);
 
         sleepCycle.init(); // initiate discovery
-
     }
 
     @Override

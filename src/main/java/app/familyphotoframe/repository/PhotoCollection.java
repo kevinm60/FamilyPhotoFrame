@@ -10,6 +10,7 @@ import android.widget.Toast;
 import app.familyphotoframe.PhotoFrameActivity;
 import app.familyphotoframe.model.Contact;
 import app.familyphotoframe.model.Photo;
+import app.familyphotoframe.exception.DiscoveryFailureException;
 import app.familyphotoframe.R;
 
 /**
@@ -38,6 +39,9 @@ public class PhotoCollection {
     /** indicates discovery is in progress */
     private boolean discoveryInProgress;
 
+    /** if true, we couldn't contact flickr */
+    private boolean discoveryFailed;
+
     public PhotoCollection(final PhotoFrameActivity photoFrameActivity, final FlickrClient flickr) {
         this.photoFrameActivity = photoFrameActivity;
         this.flickr = flickr;
@@ -55,6 +59,7 @@ public class PhotoCollection {
         }
         Log.i("PhotoCollection", "starting discovery");
         discoveryInProgress = true;
+        discoveryFailed = false;
         flickr.lookupProfile(this);
         contacts.clear();
         photos.clear();
@@ -103,11 +108,25 @@ public class PhotoCollection {
         }
     }
 
+    public synchronized void reportDiscoveryFailure() {
+        discoveryFailed = true;
+        discoveryInProgress = false;
+        timeOfLastDiscovery = new Date();
+        photoFrameActivity.startShow();
+    }
+
+    public synchronized boolean hasDiscoveryFailed() {
+        return discoveryFailed;
+    }
+
     public synchronized void addPhoto(final Photo photo) {
         photos.add(photo);
     }
 
-    public Set<Photo> getPhotos() {
+    public Set<Photo> getPhotos() throws DiscoveryFailureException {
+        if (hasDiscoveryFailed()) {
+            throw new DiscoveryFailureException();
+        }
         return photos;
     }
 

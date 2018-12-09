@@ -27,6 +27,7 @@ import app.familyphotoframe.model.Contact;
 import app.familyphotoframe.model.Relationship;
 import app.familyphotoframe.repository.PhotoCollection;
 import app.familyphotoframe.PhotoFrameActivity;
+import app.familyphotoframe.exception.DiscoveryFailureException;
 
 // @RunWith(PowerMockRunner.class)
 public class ShowPlannerTest {
@@ -44,9 +45,9 @@ public class ShowPlannerTest {
 
     // TODO: Add test for cases where fewer photos are available (groups are
     //       empty or only partially populated)
-    
+
     @Test
-    public void photosShownAtExpectedRates() {
+    public void photosShownAtExpectedRates() throws DiscoveryFailureException {
 
         Contact[] contacts =
             { new Contact("a", "adam", Relationship.SELF),

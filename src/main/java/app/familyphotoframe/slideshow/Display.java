@@ -16,8 +16,11 @@ import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.RequestOptions;
 import com.bumptech.glide.request.RequestListener;
 
+import app.familyphotoframe.R;
 import app.familyphotoframe.model.Photo;
 import app.familyphotoframe.model.CrossFadeGroup;
+import app.familyphotoframe.exception.DiscoveryFailureException;
+import app.familyphotoframe.exception.InsufficientPhotosException;
 
 /**
  * This is the slideshow thread. It's a Runnable so it can be used by the timerHandler.
@@ -38,7 +41,7 @@ public class Display implements Runnable {
     final private LinkedList<Photo> photoQueue = new LinkedList<>();
     final private LinkedList<Photo> photoHistory = new LinkedList<>();
     private int currentPhotoIndex;
-    final private TextView textInsufficientPhotos;
+    final private TextView messageView;
     final private CrossFadeGroup groupA;
     final private CrossFadeGroup groupB;
     private boolean isCurrentA;
@@ -47,13 +50,13 @@ public class Display implements Runnable {
     private int frameDuration = FRAME_DURATION_DAY;
 
     public Display(final Activity photoFrameActivity,
-                   final TextView textInsufficientPhotos,
+                   final TextView messageView,
                    final CrossFadeGroup groupA, final CrossFadeGroup groupB,
                    final ShowPlanner showPlanner) {
         this.photoFrameActivity = photoFrameActivity;
         this.currentPhotoIndex = 0;
-        this.textInsufficientPhotos = textInsufficientPhotos;
-        textInsufficientPhotos.setVisibility(View.GONE);
+        this.messageView = messageView;
+        messageView.setVisibility(View.GONE);
         this.groupA = groupA;
         groupA.getFrame().setAlpha(0f);
         this.groupB = groupB;
@@ -72,34 +75,42 @@ public class Display implements Runnable {
     @Override
     public void run() {
         // only need to prime photo history once.
-        if (!slideshowReady) {
-            prime();
-            slideshowIsRunning = true;
-            showPhoto(photoHistory.get(0), photoHistory.get(1));
-        } else {
-            slideshowIsRunning = true;
-            forward();
+        try {
+            if (!slideshowReady) {
+                prime();
+                slideshowIsRunning = true;
+                showPhoto(photoHistory.get(0), photoHistory.get(1));
+            } else {
+                slideshowIsRunning = true;
+                forward();
+            }
+        } catch (DiscoveryFailureException e) {
+            messageView.setText(R.string.check_network);
+            messageView.setVisibility(View.VISIBLE);
+            Log.i("Display", "discovery failure");
+        } catch (InsufficientPhotosException e) {
+            messageView.setText(R.string.insufficient_photos);
+            messageView.setVisibility(View.VISIBLE);
+            Log.i("Display", "insufficient photos");
         }
     }
 
-    private synchronized void prime() {
+    private synchronized void prime() throws InsufficientPhotosException, DiscoveryFailureException {
         Log.i("Display", "priming");
         photoQueue.addAll(showPlanner.getPhotosToSchedule(NUM_PHOTOS_TO_PLAN));
         if (photoQueue.size() < MIN_SLIDESHOW_SIZE) {
-            textInsufficientPhotos.setVisibility(View.VISIBLE);
-            Log.i("Display", "insufficient photos");
-            return;
+            throw new InsufficientPhotosException();
         }
-        textInsufficientPhotos.setVisibility(View.GONE);
+        messageView.setVisibility(View.GONE);
         photoHistory.add(photoQueue.poll());
         photoHistory.add(photoQueue.poll());
         slideshowReady = true;
     }
 
-    public synchronized void forward() {
+    public synchronized void forward() throws DiscoveryFailureException {
         Log.i("Display", "forward");
         if (!slideshowReady) {
-            Log.i("Display", "slidesow not ready");
+            Log.i("Display", "slideshow not ready");
             return;
         }
 
@@ -124,7 +135,7 @@ public class Display implements Runnable {
     public synchronized void backward() {
         Log.i("Display", "backward");
         if (!slideshowReady) {
-            Log.i("Display", "slidesow not ready");
+            Log.i("Display", "slideshow not ready");
             return;
         }
         // Log.i("Display", "moving backward in photo history");

@@ -12,6 +12,7 @@
     <string name="login_failed">flickr login failed</string>
 
     <string name="insufficient_photos">There is an insufficient number of photos to run the slideshow</string>
+    <string name="check_network">Unable to reach flickr.com, please check your internet connection</string>
     <string name="sync_to_db">photos are up to date</string>
 
     <string name="hello_msg">hello</string>

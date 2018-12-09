@@ -12,6 +12,7 @@ import android.util.Log;
 import app.familyphotoframe.repository.PhotoCollection;
 import app.familyphotoframe.model.Photo;
 import app.familyphotoframe.model.Relationship;
+import app.familyphotoframe.exception.DiscoveryFailureException;
 
 /**
  * chooses the photos for the next time period
@@ -98,7 +99,7 @@ public class ShowPlanner {
     /**
      * return a randomized list of photos based on distribution preferences
      */
-    public List<Photo> getPhotosToSchedule(final int count) {
+    public List<Photo> getPhotosToSchedule(final int count) throws DiscoveryFailureException {
         Log.i("ShowPlanner", "filling queue");
 
         LinkedList<Photo> selectedPhotos = new LinkedList<Photo>();
