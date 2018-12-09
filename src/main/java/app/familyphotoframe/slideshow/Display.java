@@ -20,7 +20,7 @@ import app.familyphotoframe.model.Photo;
 import app.familyphotoframe.model.CrossFadeGroup;
 
 /**
- * this is the slideshow thread.
+ * This is the slideshow thread. It's a Runnable so it can be used by the timerHandler.
  */
 public class Display implements Runnable {
     final private int MIN_SLIDESHOW_SIZE = 2;
@@ -41,7 +41,7 @@ public class Display implements Runnable {
     final private TextView textInsufficientPhotos;
     final private CrossFadeGroup groupA;
     final private CrossFadeGroup groupB;
-    private boolean isCurrentA = true;
+    private boolean isCurrentA;
     private boolean slideshowReady;
     private boolean slideshowIsRunning;
     private int frameDuration = FRAME_DURATION_DAY;
@@ -58,27 +58,32 @@ public class Display implements Runnable {
         groupA.getFrame().setAlpha(0f);
         this.groupB = groupB;
         groupB.getFrame().setAlpha(0f);
+        isCurrentA = true;
         this.showPlanner = showPlanner;
-        this.slideshowReady = false;
-        this.slideshowIsRunning = false;
+        this.slideshowReady = false; // true if photo history has been primed
+        this.slideshowIsRunning = false; // true if there is an event in the timerHandler to advance the slideshow
         FADE_DURATION = photoFrameActivity.getResources().getInteger(android.R.integer.config_longAnimTime);
     }
 
     /**
-     * this routine advances the slideshow and sets a timer to call itself again to advance the
-     * slideshow again.
+     * This is called by PhotoFrameActivity to start the slideshow and by the timerHandler to
+     * advance the slideshow. It advances the slideshow and sets a timer to call itself again.
      */
     @Override
     public void run() {
-        forward();
+        // only need to prime photo history once.
+        if (!slideshowReady) {
+            prime();
+            slideshowIsRunning = true;
+            showPhoto(photoHistory.get(0), photoHistory.get(1));
+        } else {
+            slideshowIsRunning = true;
+            forward();
+        }
     }
 
-    public synchronized void prime() {
-        // only need to prime once. ignore subsequent calls
-        if (slideshowReady) {
-            Log.i("Display", "slideshow is ready, no need to prime");
-            return;
-        }
+    private synchronized void prime() {
+        Log.i("Display", "priming");
         photoQueue.addAll(showPlanner.getPhotosToSchedule(NUM_PHOTOS_TO_PLAN));
         if (photoQueue.size() < MIN_SLIDESHOW_SIZE) {
             textInsufficientPhotos.setVisibility(View.VISIBLE);
@@ -89,13 +94,12 @@ public class Display implements Runnable {
         photoHistory.add(photoQueue.poll());
         photoHistory.add(photoQueue.poll());
         slideshowReady = true;
-        slideshowIsRunning = true;
-        showNextPhoto(photoHistory.get(0), photoHistory.get(1));
     }
 
     public synchronized void forward() {
+        Log.i("Display", "forward");
         if (!slideshowReady) {
-            Log.i("Display", "slidesow not ready, not going forward");
+            Log.i("Display", "slidesow not ready");
             return;
         }
 
@@ -110,7 +114,7 @@ public class Display implements Runnable {
         ++currentPhotoIndex;
         Photo nextPhoto = photoHistory.get(currentPhotoIndex);
         Photo followingPhoto = photoHistory.get(currentPhotoIndex+1);
-        showNextPhoto(nextPhoto, followingPhoto);
+        showPhoto(nextPhoto, followingPhoto);
 
         if (isQueueLow()) {
             photoQueue.addAll(showPlanner.getPhotosToSchedule(NUM_PHOTOS_TO_PLAN));
@@ -118,8 +122,9 @@ public class Display implements Runnable {
     }
 
     public synchronized void backward() {
+        Log.i("Display", "backward");
         if (!slideshowReady) {
-            Log.i("Display", "slidesow not ready, not going backward");
+            Log.i("Display", "slidesow not ready");
             return;
         }
         // Log.i("Display", "moving backward in photo history");
@@ -130,12 +135,12 @@ public class Display implements Runnable {
             if (currentPhotoIndex > 0) {
                 followingPhoto = photoHistory.get(currentPhotoIndex-1);
             }
-            showNextPhoto(nextPhoto, followingPhoto);
+            showPhoto(nextPhoto, followingPhoto);
         }
     }
 
     // only called by synchronized methods
-    private void showNextPhoto(final Photo nextPhoto, final Photo followingPhoto) {
+    private void showPhoto(final Photo nextPhoto, final Photo followingPhoto) {
         Log.i("Display", "showing photo #" + (currentPhotoIndex+1) + " of " + photoHistory.size() +
               "; there are " + photoQueue.size() + " photos remaining in the queue");
         Log.i("Display", "nextPhoto " + nextPhoto.getUrl() + ", followingPhoto " +

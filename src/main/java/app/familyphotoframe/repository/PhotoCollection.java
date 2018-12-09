@@ -30,7 +30,7 @@ public class PhotoCollection {
     private Set<Contact> contacts;
 
     /** count of async contact requests in progress */
-    private int contactRequestsInProgress = 0;
+    private int contactRequestsInProgress;
 
     /** completion time of last discovery request */
     private Date timeOfLastDiscovery;
@@ -43,6 +43,7 @@ public class PhotoCollection {
         this.flickr = flickr;
         contacts = new HashSet<>();
         photos = new HashSet<>();
+        contactRequestsInProgress = 0;
         timeOfLastDiscovery = null;
         discoveryInProgress = false;
     }
@@ -52,6 +53,7 @@ public class PhotoCollection {
             Log.i("PhotoCollection", "discovery already in progress, not restarting");
             return;
         }
+        Log.i("PhotoCollection", "starting discovery");
         discoveryInProgress = true;
         flickr.lookupProfile(this);
         contacts.clear();
@@ -89,7 +91,7 @@ public class PhotoCollection {
 
         // discovery complete, start slideshow
         if (contactRequestsInProgress == 0) {
-            Log.i("PhotoCollection", "photo count: " + photos.size());
+            Log.i("PhotoCollection", "discovery complete. photo count: " + photos.size());
             timeOfLastDiscovery = new Date();
             discoveryInProgress = false;
 

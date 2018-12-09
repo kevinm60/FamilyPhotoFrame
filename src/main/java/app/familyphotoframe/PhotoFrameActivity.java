@@ -52,7 +52,7 @@ public class PhotoFrameActivity extends Activity {
     private Handler uiHandler;
     private Set<ReHideSystemUiTask> uiTasks;
     private SleepCycle sleepCycle;
-    final private long FULLSCREEN_DELAY = 2000L;
+    final private long FULLSCREEN_DELAY = 1000L;
     final private int SWIPE_MIN_DISTANCE = 120;
     final private int SWIPE_THRESHOLD_VELOCITY = 200;
 
@@ -174,8 +174,7 @@ public class PhotoFrameActivity extends Activity {
      */
     public void startShow() {
         Log.i("PhotoFrameActivity", "starting slideshow");
-        display.prime();
-        display.resume();
+        display.run();
     }
 
     /**
