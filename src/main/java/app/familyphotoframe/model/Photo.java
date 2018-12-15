@@ -72,8 +72,14 @@ public class Photo {
         this.title = title;
     }
 
+    /**
+     * get the url to fetch the actual image from flickr.
+     * size "h" is 1600 on the longest side.
+     *
+     * @see https://www.flickr.com/services/api/misc.urls.html
+     */
     public String getUrl() {
-        return String.format("https://farm%s.staticflickr.com/%s/%s_%s.jpg",
+        return String.format("https://farm%s.staticflickr.com/%s/%s_%s_h.jpg",
                              farmId, serverId, id, secret);
     }
 
