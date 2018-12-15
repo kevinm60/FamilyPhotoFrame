@@ -267,8 +267,10 @@ public class FlickrClient extends OAuthBaseClient {
             }
             photoCollection.markContactRequestComplete();
         }
+
         public void onFailure(int statusCode, Header[] headers, Throwable err, JSONObject json) {
             Log.e("FlickrClient", "fail: " + err);
+            photoCollection.markContactRequestComplete();
         }
     }
 }
