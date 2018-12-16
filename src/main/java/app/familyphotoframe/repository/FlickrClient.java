@@ -158,10 +158,12 @@ public class FlickrClient extends OAuthBaseClient {
             this.photoCollection = photoCollection;
         }
 
+        @Override
         public void onStart() {
             Log.i("FlickrClient", "profile request started");
         }
 
+        @Override
         public void onSuccess(int statusCode, Header[] headers, JSONObject json) {
             try {
                 Log.i("FlickrClient", "got profile: " + json);
@@ -174,6 +176,8 @@ public class FlickrClient extends OAuthBaseClient {
                 Log.e("FlickrClient", "getProfile JSONException: ", e);
             }
         }
+
+        @Override
         public void onFailure(int statusCode, Header[] headers, Throwable err, JSONObject json) {
             Log.e("FlickrClient", "fail: " + err);
             photoCollection.reportDiscoveryFailure();
@@ -188,10 +192,12 @@ public class FlickrClient extends OAuthBaseClient {
             this.photoCollection = photoCollection;
         }
 
+        @Override
         public void onStart() {
             Log.d("FlickrClient", "contacts request started");
         }
 
+        @Override
         public void onSuccess(int statusCode, Header[] headers, JSONObject json) {
             Set<Contact> contacts = new HashSet<>();
             try {
@@ -221,6 +227,8 @@ public class FlickrClient extends OAuthBaseClient {
             }
             photoCollection.addContactsAndContinueDiscovery(contacts);
         }
+
+        @Override
         public void onFailure(int statusCode, Header[] headers, Throwable err, JSONObject json) {
             photoCollection.reportDiscoveryFailure();
         }
@@ -234,10 +242,12 @@ public class FlickrClient extends OAuthBaseClient {
             this.photoCollection = photoCollection;
         }
 
+        @Override
         public void onStart() {
-            Log.i("FlickrClient", "photos request started");
+            Log.i("FlickrClient", "photos request started for a contact");
         }
 
+        @Override
         public void onSuccess(int statusCode, Header[] headers, JSONObject json) {
             try {
                 Log.d("FlickrClient", "got photos: " + json);
@@ -268,8 +278,17 @@ public class FlickrClient extends OAuthBaseClient {
             photoCollection.markContactRequestComplete();
         }
 
+        @Override
         public void onFailure(int statusCode, Header[] headers, Throwable err, JSONObject json) {
             Log.e("FlickrClient", "fail: " + err);
+            photoCollection.markContactRequestComplete();
+        }
+
+        // workaround for a bug in android-async-http.
+        // https://github.com/loopj/android-async-http/issues/91
+        @Override
+        public void onFailure(int statusCode, Header[] headers, Throwable err, JSONArray errorResponse) {
+            Log.e("FlickrClient", "failure triggered wrong callback. fail: " + err);
             photoCollection.markContactRequestComplete();
         }
     }
