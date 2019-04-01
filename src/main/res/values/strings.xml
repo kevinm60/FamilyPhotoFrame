@@ -3,17 +3,18 @@
 
     <string name="app_name">FamilyPhotoFrame</string>
     <string name="menu_settings">settings</string>
+    <string name="action_share">share</string>
     <string name="action_synchronize">synchronize</string>
     <string name="action_logout">logout</string>
 
-    <string name="login_mesg">you must login to your Flickr account to access your photos.</string>
-    <string name="login_button">login</string>
-    <string name="login_success">flickr login successful</string>
-    <string name="login_failed">flickr login failed</string>
+    <string name="login_mesg">You must log in to your Flickr account to access your photos.</string>
+    <string name="login_button">Login</string>
+    <string name="login_success">Flickr login successful.</string>
+    <string name="login_failed">Flickr login failed.</string>
 
-    <string name="insufficient_photos">There is an insufficient number of photos to run the slideshow</string>
-    <string name="check_network">Unable to reach flickr.com, please check your internet connection</string>
-    <string name="sync_to_db">photos are up to date</string>
+    <string name="insufficient_photos">There is an insufficient number of photos to run the slideshow.</string>
+    <string name="check_network">Unable to reach flickr.com, please check your internet connection.</string>
+    <string name="sync_to_db">Photos are up to date.</string>
 
     <string name="hello_msg">hello</string>
 

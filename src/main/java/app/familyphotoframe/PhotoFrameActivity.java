@@ -12,6 +12,7 @@ import android.app.ActionBar.OnMenuVisibilityListener;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
@@ -173,6 +174,20 @@ public class PhotoFrameActivity extends Activity {
         Log.i("PhotoFrameActivity", "restarted");
     }
 
+    @Override
+    protected void onPause() {
+        super.onPause();
+        Log.i("PhotoFrameActivity", "paused");
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        clearRehideTasks();
+        scheduleRehideTask();
+        Log.i("PhotoFrameActivity", "resumed");
+    }
+
     /**
      * start the slideshow. called by photoCollection at the end of discovery.
      */
@@ -185,6 +200,7 @@ public class PhotoFrameActivity extends Activity {
      * full screen the activity.
      */
     private void configureFullscreenMode(boolean fullscreenMode) {
+        Log.i("PhotoFrameActivity", "configuring fullscreen: " + fullscreenMode);
         View decorView = getWindow().getDecorView();
         int uiVisibilityFlags =
             // Set the content to appear under the system bars so that the
@@ -208,7 +224,6 @@ public class PhotoFrameActivity extends Activity {
         }
 
         decorView.setSystemUiVisibility(uiVisibilityFlags);
-
     }
 
     @Override
@@ -222,6 +237,9 @@ public class PhotoFrameActivity extends Activity {
     public boolean onOptionsItemSelected(MenuItem item) {
         Log.i("PhotoFrameActivity", "menu selected");
         switch (item.getItemId()) {
+        case R.id.action_share:
+            display.shareCurrentPhoto();
+            return true;
         case R.id.action_synchronize:
             photoCollection.startDiscovery();
             return true;
@@ -237,7 +255,7 @@ public class PhotoFrameActivity extends Activity {
      * log out from flickr
      */
     private void logout() {
-        Log.i("PhotoFrameActivity", "logout selected");
+        Log.i("PhotoFrameActivity", "logout menuitem selected");
         flickr.logout();
     }
 
@@ -269,5 +287,4 @@ public class PhotoFrameActivity extends Activity {
             configureFullscreenMode(true);
         }
     }
-
 }

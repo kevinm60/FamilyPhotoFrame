@@ -7,6 +7,7 @@ import android.app.Activity;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.os.Handler;
+import android.content.Intent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.animation.Animator;
@@ -17,6 +18,7 @@ import com.bumptech.glide.request.RequestOptions;
 import com.bumptech.glide.request.RequestListener;
 
 import app.familyphotoframe.R;
+import app.familyphotoframe.PhotoFrameActivity;
 import app.familyphotoframe.model.Photo;
 import app.familyphotoframe.model.CrossFadeGroup;
 import app.familyphotoframe.exception.DiscoveryFailureException;
@@ -40,6 +42,7 @@ public class Display implements Runnable {
     final private ShowPlanner showPlanner;
     final private LinkedList<Photo> photoQueue = new LinkedList<>();
     final private LinkedList<Photo> photoHistory = new LinkedList<>();
+    private ShareHandler shareHandler;
     private int currentPhotoIndex;
     final private TextView messageView;
     final private CrossFadeGroup groupA;
@@ -63,6 +66,7 @@ public class Display implements Runnable {
         groupB.getFrame().setAlpha(0f);
         isCurrentA = true;
         this.showPlanner = showPlanner;
+        shareHandler = new ShareHandler(photoFrameActivity);
         this.slideshowReady = false; // true if photo history has been primed
         this.slideshowIsRunning = false; // true if there is an event in the timerHandler to advance the slideshow
         FADE_DURATION = photoFrameActivity.getResources().getInteger(android.R.integer.config_longAnimTime);
@@ -161,11 +165,22 @@ public class Display implements Runnable {
 
         RequestOptions options = new RequestOptions()
             .fitCenter();
-        Glide.with(photoFrameActivity)
-            .load(nextPhoto.getUrl())
-            .apply(options)
-            .into(nextGroup().getPhoto());
-        nextGroup().getCaption().setText(makePhotoCaption(nextPhoto));
+        try {
+            Glide.with(photoFrameActivity)
+                .asBitmap()
+                .load(nextPhoto.getUrl())
+                .apply(options)
+                .into(nextGroup().getPhoto());
+            nextGroup().getCaption().setText(makePhotoCaption(nextPhoto));
+        } catch (IllegalArgumentException e) {
+            // I'm not sure about this. I've seen the app crash saying that 'photoFrameActivity' was
+            // 'destroyed.' This may happen if the device runs low on memory and recycles it. This
+            // is meant to restart the activity in that case.
+            Log.w("Display", "PhotoFrameActivity was destroyed. Restarting.");
+            Intent photoFrameIntent = new Intent(photoFrameActivity, PhotoFrameActivity.class);
+            photoFrameActivity.startActivity(photoFrameIntent);
+            photoFrameActivity.finish();
+        }
 
         crossFade(currentGroup().getFrame(), nextGroup().getFrame());
         isCurrentA = !isCurrentA;
@@ -238,7 +253,6 @@ public class Display implements Runnable {
     }
 
     private void crossFade(final ViewGroup currentPhotoView, final ViewGroup nextPhotoView) {
-
         nextPhotoView.animate()
             .alpha(1f)
             .setDuration(FADE_DURATION)
@@ -248,6 +262,11 @@ public class Display implements Runnable {
             .alpha(0f)
             .setDuration(FADE_DURATION)
             .setListener(null);
+    }
 
+    public void shareCurrentPhoto() {
+        // pass in the ImageView containing the photo that's currently visible
+        final ImageView imageView = (ImageView) photoFrameActivity.findViewById(isCurrentA? R.id.photoA : R.id.photoB);
+        shareHandler.sharePhoto(imageView);
     }
 }
