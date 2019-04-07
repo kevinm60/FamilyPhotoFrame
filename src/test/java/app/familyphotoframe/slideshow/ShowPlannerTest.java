@@ -66,7 +66,7 @@ public class ShowPlannerTest {
             for (Contact c : contacts) {
                 for (Date d : dates) {
                     allPhotos.add(new Photo(c.getName() + "_" + d.getTime() + "_" + i,
-                                            null, null, null, c, null, d));
+                                            null, null, null, c, null, d, null));
                 }
             }
         }

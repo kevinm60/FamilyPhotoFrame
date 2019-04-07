@@ -19,6 +19,7 @@ import com.bumptech.glide.request.RequestListener;
 
 import app.familyphotoframe.R;
 import app.familyphotoframe.PhotoFrameActivity;
+import app.familyphotoframe.repository.FlickrClient;
 import app.familyphotoframe.model.Photo;
 import app.familyphotoframe.model.CrossFadeGroup;
 import app.familyphotoframe.exception.DiscoveryFailureException;
@@ -32,6 +33,8 @@ public class Display implements Runnable {
     final private int MIN_QUEUE_SIZE = 3;
     final private int MAX_HISTORY_SIZE = 100;
     final private int NUM_PHOTOS_TO_PLAN = 10;
+    final private int WAIT_DURATION_MS = 100;
+    final private int LOCATION_WAIT_TRIES = 20;
     final private int FRAME_DURATION_DAY   = 30 * 1000; // 30 secs
     final private int FRAME_DURATION_NIGHT = 3 * 60 * 1000; // 3 mins
     final private int FADE_DURATION;
@@ -40,6 +43,7 @@ public class Display implements Runnable {
     final private SimpleDateFormat dateFormat = new SimpleDateFormat("EEEE, MMMM d, yyyy");
     final private Activity photoFrameActivity;
     final private ShowPlanner showPlanner;
+    final private FlickrClient flickr;
     final private LinkedList<Photo> photoQueue = new LinkedList<>();
     final private LinkedList<Photo> photoHistory = new LinkedList<>();
     private ShareHandler shareHandler;
@@ -55,7 +59,7 @@ public class Display implements Runnable {
     public Display(final Activity photoFrameActivity,
                    final TextView messageView,
                    final CrossFadeGroup groupA, final CrossFadeGroup groupB,
-                   final ShowPlanner showPlanner) {
+                   final ShowPlanner showPlanner, final FlickrClient flickr) {
         this.photoFrameActivity = photoFrameActivity;
         this.currentPhotoIndex = 0;
         this.messageView = messageView;
@@ -66,6 +70,7 @@ public class Display implements Runnable {
         groupB.getFrame().setAlpha(0f);
         isCurrentA = true;
         this.showPlanner = showPlanner;
+        this.flickr = flickr;
         shareHandler = new ShareHandler(photoFrameActivity);
         this.slideshowReady = false; // true if photo history has been primed
         this.slideshowIsRunning = false; // true if there is an event in the timerHandler to advance the slideshow
@@ -106,8 +111,30 @@ public class Display implements Runnable {
             throw new InsufficientPhotosException();
         }
         messageView.setVisibility(View.GONE);
-        photoHistory.add(photoQueue.poll());
-        photoHistory.add(photoQueue.poll());
+
+        for (int ii=0; ii<MIN_SLIDESHOW_SIZE; ii++) {
+            Photo photo = photoQueue.poll();
+            Log.i("Display", " adding " + photo);
+            flickr.lookupPlace(photo);
+            photoHistory.add(photo);
+        }
+
+        for (int ii=0; ii<LOCATION_WAIT_TRIES; ii++) {
+            if (photoHistory.get(0).getWoeId() == null) {
+                Log.i("Display", "  no woeid");
+                break;
+            }
+            if (photoHistory.get(0).getLocation() != null) {
+                Log.i("Display", "  got location");
+                break;
+            }
+            try {
+                Log.i("Display", "  waiting for location " + photoHistory.get(0));
+                Thread.sleep(WAIT_DURATION_MS);
+            } catch (InterruptedException e) {
+                Log.d("Display", "interrupted");
+            }
+        }
         slideshowReady = true;
     }
 
@@ -129,6 +156,7 @@ public class Display implements Runnable {
         ++currentPhotoIndex;
         Photo nextPhoto = photoHistory.get(currentPhotoIndex);
         Photo followingPhoto = photoHistory.get(currentPhotoIndex+1);
+        flickr.lookupPlace(followingPhoto);
         showPhoto(nextPhoto, followingPhoto);
 
         if (isQueueLow()) {
@@ -158,7 +186,7 @@ public class Display implements Runnable {
     private void showPhoto(final Photo nextPhoto, final Photo followingPhoto) {
         Log.i("Display", "showing photo #" + (currentPhotoIndex+1) + " of " + photoHistory.size() +
               "; there are " + photoQueue.size() + " photos remaining in the queue");
-        Log.i("Display", "nextPhoto " + nextPhoto.getUrl() + ", followingPhoto " +
+        Log.i("Display", "nextPhoto " + nextPhoto.toString() + ", followingPhoto " +
               (followingPhoto == null ? "null" : followingPhoto.getUrl()));
 
         nextGroup().getFrame().setAlpha(0f);
@@ -247,9 +275,10 @@ public class Display implements Runnable {
     }
 
     private String makePhotoCaption(final Photo photo) {
-        return String.format("%s\n\n%s\n%s\n", photo.getTitle(),
+        return String.format("%s\n\n%s\n%s\n%s\n", photo.getTitle(),
                              photo.getOwner().getName(),
-                             dateFormat.format(photo.getDateTaken()));
+                             dateFormat.format(photo.getDateTaken()),
+                             photo.getLocation()==null ? "" : photo.getLocation());
     }
 
     private void crossFade(final ViewGroup currentPhotoView, final ViewGroup nextPhotoView) {

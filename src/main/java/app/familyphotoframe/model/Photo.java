@@ -11,9 +11,11 @@ public class Photo {
     private Contact owner;
     private Date dateTaken;
     private String title;
+    private String woeId;
+    private String location;
 
     public Photo(final String id, final String secret, final String serverId, final String farmId, final Contact owner,
-                 final String title, final Date dateTaken) {
+                 final String title, final Date dateTaken, final String woeId) {
         this.id = id;
         this.secret = secret;
         this.serverId = serverId;
@@ -21,6 +23,7 @@ public class Photo {
         this.owner = owner;
         this.title = title;
         this.dateTaken = dateTaken;
+        this.woeId = woeId;
     }
 
     public String getId() {
@@ -72,6 +75,17 @@ public class Photo {
         this.title = title;
     }
 
+    public String getWoeId() {
+        return woeId;
+    }
+
+    public synchronized String getLocation() {
+        return location;
+    }
+    public synchronized void setLocation(final String location) {
+        this.location = location;
+    }
+
     /**
      * get the url to fetch the actual image from flickr.
      * size "h" is 1600 on the longest side.
@@ -81,6 +95,10 @@ public class Photo {
     public String getUrl() {
         return String.format("https://farm%s.staticflickr.com/%s/%s_%s_h.jpg",
                              farmId, serverId, id, secret);
+    }
+
+    public String toString() {
+        return String.format("%s/%s", owner.getName(), id);
     }
 
     public boolean equals(Object other) {

@@ -2,10 +2,12 @@ package app.familyphotoframe.repository;
 
 import java.util.Set;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Collections;
 import java.util.List;
 import java.util.Date;
 import java.util.NoSuchElementException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.text.ParseException;
@@ -57,6 +59,9 @@ public class FlickrClient extends OAuthBaseClient {
     private static final String FLICKR_FARMID_FIELD = "farm";
     private static final String FLICKR_OWNER_FIELD = "owner";
     private static final String FLICKR_DATETAKEN_FIELD = "datetaken";
+    private static final String FLICKR_WOEID_FIELD = "woeid";
+    private static final String FLICKR_PLACE_FIELD = "place";
+    private static final String FLICKR_NAME_FIELD = "name";
     private static final String FLICKR_TITLE_FIELD = "title";
     private static final String FLICKR_DESCRIPTION_FIELD = "description";
     private static final String FLICKR_CONTENT_FIELD = "_content";
@@ -69,6 +74,8 @@ public class FlickrClient extends OAuthBaseClient {
 
     /** identifies this app to flickr */
     private final String apiKey;
+
+    private Map<String,String> placesCache = new ConcurrentHashMap<>();
 
 
     /**
@@ -133,7 +140,7 @@ public class FlickrClient extends OAuthBaseClient {
         params.put("method", "flickr.people.getPhotos");
         params.put("user_id", contact.getUserId());
         params.put("content_type", 1);
-        params.put("extras", "date_taken");
+        params.put("extras", "date_taken,geo");
         params.put("per_page", 500);
 
         String apiUrl = getApiUrl("");
@@ -141,6 +148,27 @@ public class FlickrClient extends OAuthBaseClient {
         Log.d("FlickrClient", "params: " + params);
 
         client.get(apiUrl, params, new PhotosResponseHandler(photoCollection));
+    }
+
+    public void lookupPlace(final Photo photo) {
+        if (photo.getLocation() != null || photo.getWoeId() == null) {
+            Log.d("FlickrClient", "no need to lookup place: hasLocation? " + (photo.getLocation()!=null)+ ", missing woeid? " +(photo.getWoeId()==null));
+            return;
+        }
+        if (placesCache.containsKey(photo.getWoeId())) {
+            Log.d("FlickrClient", "places cache hit");
+            photo.setLocation(placesCache.get(photo.getWoeId()));
+            return;
+        }
+
+        RequestParams params = makeRequestParams();
+        params.put("method", "flickr.places.getInfo");
+        params.put("woe_id", photo.getWoeId());
+
+        String apiUrl = getApiUrl("");
+
+        Log.i("FlickrClient", "starting places request for " + photo);
+        client.get(apiUrl, params, new PlaceResponseHandler(photo));
     }
 
     private RequestParams makeRequestParams() {
@@ -250,7 +278,7 @@ public class FlickrClient extends OAuthBaseClient {
         @Override
         public void onSuccess(int statusCode, Header[] headers, JSONObject json) {
             try {
-                Log.d("FlickrClient", "got photos: " + json);
+                // Log.d("FlickrClient", "got photos: " + json);
                 if (json.has(FLICKR_PHOTOS_FIELD) && json.getJSONObject(FLICKR_PHOTOS_FIELD).has(FLICKR_PHOTO_FIELD)) {
                     JSONArray jsonPhotos = json.getJSONObject(FLICKR_PHOTOS_FIELD).getJSONArray(FLICKR_PHOTO_FIELD);
                     for (int ii=0; ii<jsonPhotos.length(); ii++) {
@@ -268,7 +296,15 @@ public class FlickrClient extends OAuthBaseClient {
                         if (Pattern.matches(NO_SPACES, title) && Pattern.matches(HAS_NUMBERS, title) && Pattern.matches(HAS_DELIMETERS, title)) {
                             title = "";
                         }
-                        Photo photo = new Photo(id, secret, serverId, farmId, owner, title, dateTaken);
+
+                        // Log.d("FlickrClient", "got photo" + jsonPhoto);
+                        String woeId = null;
+                        if (jsonPhoto.has(FLICKR_WOEID_FIELD)) {
+                            woeId = jsonPhoto.getString(FLICKR_WOEID_FIELD);
+                        // } else {
+                        //     Log.w("FlickrClient", "photo missing woeid: " + jsonPhoto.getString(FLICKR_OWNER_FIELD) +  " " + id);
+                        }
+                        Photo photo = new Photo(id, secret, serverId, farmId, owner, title, dateTaken, woeId);
                         photoCollection.addPhoto(photo);
                     }
                 }
@@ -290,6 +326,45 @@ public class FlickrClient extends OAuthBaseClient {
         public void onFailure(int statusCode, Header[] headers, Throwable err, JSONArray errorResponse) {
             Log.e("FlickrClient", "failure triggered wrong callback. fail: " + err);
             photoCollection.markContactRequestComplete();
+        }
+    }
+
+    class PlaceResponseHandler extends JsonHttpResponseHandler {
+        private Photo photo;
+
+        public PlaceResponseHandler(final Photo photo) {
+            this.photo = photo;
+        }
+
+        // @Override
+        // public void onStart() {
+        // }
+
+        @Override
+        public void onSuccess(int statusCode, Header[] headers, JSONObject json) {
+            try {
+                // Log.d("FlickrClient", "got place: " + json);
+                if (json.has(FLICKR_PLACE_FIELD) && json.getJSONObject(FLICKR_PLACE_FIELD).has(FLICKR_NAME_FIELD)) {
+                    String location = json.getJSONObject(FLICKR_PLACE_FIELD).getString(FLICKR_NAME_FIELD);
+                    Log.i("FlickrClient", "got place: " + location);
+                    placesCache.put(photo.getWoeId(), location);
+                    photo.setLocation(location);
+                }
+            } catch (JSONException | NoSuchElementException e) {
+                Log.e("FlickrClient", "getContactsPhotos: ", e);
+            }
+        }
+
+        @Override
+        public void onFailure(int statusCode, Header[] headers, Throwable err, JSONObject json) {
+            Log.e("FlickrClient", "fail: " + err);
+        }
+
+        // workaround for a bug in android-async-http.
+        // https://github.com/loopj/android-async-http/issues/91
+        @Override
+        public void onFailure(int statusCode, Header[] headers, Throwable err, JSONArray errorResponse) {
+            Log.e("FlickrClient", "failure triggered wrong callback. fail: " + err);
         }
     }
 }

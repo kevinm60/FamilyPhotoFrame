@@ -25,4 +25,4 @@ adb shell am start -n app.familyphotoframe/.LoginActivity
 adb logcat -c
 
 # echo -ne "\n\nreading log\n"
-adb logcat *:E LoginActivity:I PhotoFrameActivity:I FlickrClient:I PhotoCollection:I ShowPlanner:I Display:I SleepCycle:I ShareHandler:I
+adb logcat *:E LoginActivity:I PhotoFrameActivity:I FlickrClient:D PhotoCollection:D ShowPlanner:I Display:I SleepCycle:I ShareHandler:I

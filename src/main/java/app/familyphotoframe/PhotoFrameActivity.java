@@ -152,7 +152,7 @@ public class PhotoFrameActivity extends Activity {
         CrossFadeGroup groupB = new CrossFadeGroup((ViewGroup)findViewById(R.id.frameB),
                                                    (ImageView)findViewById(R.id.photoB),
                                                    (TextView)findViewById(R.id.captionB));
-        display = new Display(this, messageView, groupA, groupB, showPlanner);
+        display = new Display(this, messageView, groupA, groupB, showPlanner, flickr);
         sleepCycle = new SleepCycle(getWindow(), uiHandler, display, photoCollection);
 
         sleepCycle.init(); // initiate discovery
