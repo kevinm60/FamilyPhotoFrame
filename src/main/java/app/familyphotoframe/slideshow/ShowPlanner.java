@@ -27,7 +27,7 @@ public class ShowPlanner {
     static final int nominalRecencyLikelihood[] = {5,3,2}; // indexed by recency interval
 
     private class IndexElement {
-        public LinkedList<Photo> photos;
+        public List<Photo> photos;
         public int likelihood;
     }
 
@@ -55,6 +55,8 @@ public class ShowPlanner {
      */
     public void indexPhotos(Set<Photo> allPhotos) {
         Log.i("ShowPlanner", "indexing photos");
+
+        // photoCollection.dumpToLog();
 
         Date now = new Date();
         timeOfLastIndex = now;
@@ -102,7 +104,7 @@ public class ShowPlanner {
     public List<Photo> getPhotosToSchedule(final int count) throws DiscoveryFailureException {
         Log.i("ShowPlanner", "filling queue");
 
-        LinkedList<Photo> selectedPhotos = new LinkedList<Photo>();
+        List<Photo> selectedPhotos = new LinkedList<Photo>();
 
         // Only index photos when photoCollection is updated
         if (photoCollection.getTimeOfLastDiscovery().after(timeOfLastIndex)) {
@@ -132,6 +134,14 @@ public class ShowPlanner {
             selectedPhotos.subList(count,selectedPhotos.size()).clear();
         }
 
+        dumpToLog(selectedPhotos);
+
         return selectedPhotos;
+    }
+
+    private void dumpToLog(final List<Photo> selectedPhotos) {
+        for (Photo photo : selectedPhotos) {
+            Log.i("ShowPlanner", "selected: " + photo.toString());
+        }
     }
 }

@@ -1,5 +1,7 @@
 package app.familyphotoframe.repository;
 
+import java.util.Map;
+import java.util.HashMap;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.NoSuchElementException;
@@ -8,6 +10,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 import app.familyphotoframe.PhotoFrameActivity;
+import app.familyphotoframe.slideshow.Display;
 import app.familyphotoframe.model.Contact;
 import app.familyphotoframe.model.Photo;
 import app.familyphotoframe.exception.DiscoveryFailureException;
@@ -17,6 +20,8 @@ import app.familyphotoframe.R;
  * holds all of the photos of the logged in user as well as their contacts shared photos
  */
 public class PhotoCollection {
+    /** start slideshow after getting photos from a few contacts */
+    private static final int MIN_CONTACTS_TO_START = 3;
 
     /** activity with the slideshow */
     private PhotoFrameActivity photoFrameActivity;
@@ -91,12 +96,18 @@ public class PhotoCollection {
     }
 
     public synchronized void markContactRequestComplete() {
-            contactRequestsInProgress--;
-            Log.d("PhotoCollection", "completed contactRequest, num in progress: " + contactRequestsInProgress);
+        contactRequestsInProgress--;
+        Log.d("PhotoCollection", "completed contactRequest, num in progress: " + contactRequestsInProgress);
 
-        // discovery complete, start slideshow
-        if (contactRequestsInProgress == 0) {
-            Log.i("PhotoCollection", "discovery complete. photo count: " + photos.size());
+        // discovery complete or good enough, start slideshow
+        int numContactsComplete = contacts.size()-contactRequestsInProgress;
+        if (contactRequestsInProgress == 0 || discoveryInProgress && eagerStartAllowed()) {
+            if (contactRequestsInProgress == 0) {
+                Log.i("PhotoCollection", "discovery complete. photo count: " + photos.size());
+            } else {
+                Log.i("PhotoCollection", "discovery sufficient. numContactsComplete: " + numContactsComplete
+                      + " photo count: " + photos.size());
+            }
             timeOfLastDiscovery = new Date();
             discoveryInProgress = false;
 
@@ -106,6 +117,18 @@ public class PhotoCollection {
 
             photoFrameActivity.startShow();
         }
+    }
+
+    /**
+     * we can start even if not all contacts have responded yet if we have an acceptable mix of
+     * photos to fill the queue for the first time.
+     */
+    private boolean eagerStartAllowed() {
+        Set<Contact> contactsWithPhotos = new HashSet<>();
+        for (Photo photo : photos) {
+            contactsWithPhotos.add(photo.getOwner());
+        }
+        return contactsWithPhotos.size()>=MIN_CONTACTS_TO_START && photos.size()>=Display.NUM_PHOTOS_TO_PLAN;
     }
 
     public synchronized void reportDiscoveryFailure() {
@@ -132,5 +155,20 @@ public class PhotoCollection {
 
     public Date getTimeOfLastDiscovery() {
         return timeOfLastDiscovery;
+    }
+
+    public void dumpToLog() {
+        Map<Contact,Integer> counts = new HashMap<>();
+        for (Photo photo : photos) {
+            Contact owner = photo.getOwner();
+            if (counts.containsKey(owner)) {
+                counts.put(owner, counts.get(owner)+1);
+            } else {
+                counts.put(owner, 1);
+            }
+        }
+        for (Map.Entry entry : counts.entrySet()) {
+            Log.i("PhotoCollection", entry.getKey() + " " + entry.getValue());
+        }
     }
 }

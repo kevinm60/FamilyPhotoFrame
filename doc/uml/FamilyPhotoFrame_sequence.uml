@@ -6,7 +6,7 @@ skinparam monochrome true
 
 participant MainActivity
 participant PhotoFrameActivity
-participant PhotoCollection
+participant SleepCycle
 participant PhotoCollection
 participant FlickrClient
 participant ShowPlanner
@@ -20,23 +20,43 @@ MainActivity -\ PhotoFrameActivity : start
   activate PhotoFrameActivity
   destroy MainActivity
 
-alt after n hours
-  PhotoFrameActivity -> PhotoCollection : startDiscovery()
-  activate PhotoCollection
-    PhotoCollection -> FlickrClient : get profile
+  PhotoFrameActivity -> SleepCycle : init()
+  activate SleepCycle
+    SleepCycle -> Display : pause()
+    activate Display
+    deactivate Display
+    SleepCycle -> PhotoCollection : startDiscovery()
+    activate PhotoCollection
+      PhotoCollection -\ FlickrClient : lookupProfile()
+    deactivate PhotoCollection
+  deactivate SleepCycle
+  deactivate PhotoFrameActivity
       activate FlickrClient
+        FlickrClient -\ PhotoCollection : addProfileAndContinueDiscovery()
       deactivate FlickrClient
-    PhotoCollection -> FlickrClient : get contacts
+    activate PhotoCollection
+      PhotoCollection -\ FlickrClient : lookupContacts()
+    deactivate PhotoCollection
       activate FlickrClient
+        FlickrClient -\ PhotoCollection : addContactsAndContinueDiscovery()
       deactivate FlickrClient
-    PhotoCollection -> FlickrClient : get photos for each contact
-      activate FlickrClient
-      deactivate FlickrClient
-    PhotoCollection -> FlickrClient : get date for each photo,\nunless the photo is cached
-      activate FlickrClient
-      deactivate FlickrClient
-  deactivate PhotoCollection
-end
+    activate PhotoCollection
+      loop each contact
+        PhotoCollection -\ FlickrClient : lookupPhotos(contact)
+    deactivate PhotoCollection
+        activate FlickrClient
+          loop each photo
+            FlickrClient -> PhotoCollection : addPhoto()
+            activate PhotoCollection
+            deactivate PhotoCollection
+          end
+          FlickrClient -> PhotoCollection : markContactRequestComplete()
+        deactivate FlickrClient
+    activate PhotoCollection
+      end
+      PhotoCollection -> PhotoFrameActivity : startShow()
+    deactivate PhotoCollection
+    activate PhotoFrameActivity
 
 PhotoFrameActivity -> Display : run
   activate Display

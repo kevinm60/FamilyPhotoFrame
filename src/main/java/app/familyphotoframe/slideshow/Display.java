@@ -29,15 +29,15 @@ import app.familyphotoframe.exception.InsufficientPhotosException;
  * This is the slideshow thread. It's a Runnable so it can be used by the timerHandler.
  */
 public class Display implements Runnable {
-    final private int MIN_SLIDESHOW_SIZE = 2;
-    final private int MIN_QUEUE_SIZE = 3;
-    final private int MAX_HISTORY_SIZE = 100;
-    final private int NUM_PHOTOS_TO_PLAN = 10;
-    final private int WAIT_DURATION_MS = 100;
-    final private int LOCATION_WAIT_TRIES = 20;
-    final private int FRAME_DURATION_DAY   = 30 * 1000; // 30 secs
-    final private int FRAME_DURATION_NIGHT = 3 * 60 * 1000; // 3 mins
-    final private int FADE_DURATION;
+    public static final int NUM_PHOTOS_TO_PLAN = 10;
+    private static final int MIN_SLIDESHOW_SIZE = 2;
+    private static final int MIN_QUEUE_SIZE = 3;
+    private static final int MAX_HISTORY_SIZE = 100;
+    private static final int WAIT_DURATION_MS = 100;
+    private static final int LOCATION_WAIT_TRIES = 20;
+    private static final int FRAME_DURATION_DAY   = 30 * 1000; // 30 secs
+    private static final int FRAME_DURATION_NIGHT = 3 * 60 * 1000; // 3 mins
+    private final int FADE_DURATION;
 
     final private Handler timerHandler = new Handler();
     final private SimpleDateFormat dateFormat = new SimpleDateFormat("EEEE, MMMM d, yyyy");
@@ -156,6 +156,8 @@ public class Display implements Runnable {
         ++currentPhotoIndex;
         Photo nextPhoto = photoHistory.get(currentPhotoIndex);
         Photo followingPhoto = photoHistory.get(currentPhotoIndex+1);
+        Log.i("Display", String.format("next two: %s, %s", nextPhoto.toString(),
+                                       (followingPhoto == null ? "null" : followingPhoto.toString())));
         flickr.lookupPlace(followingPhoto);
         showPhoto(nextPhoto, followingPhoto);
 
@@ -184,16 +186,15 @@ public class Display implements Runnable {
 
     // only called by synchronized methods
     private void showPhoto(final Photo nextPhoto, final Photo followingPhoto) {
-        Log.i("Display", "showing photo #" + (currentPhotoIndex+1) + " of " + photoHistory.size() +
-              "; there are " + photoQueue.size() + " photos remaining in the queue");
-        Log.i("Display", "nextPhoto " + nextPhoto.toString() + ", followingPhoto " +
-              (followingPhoto == null ? "null" : followingPhoto.getUrl()));
+        Log.i("Display", String.format("showing photo: %d, queueSize: %d, historySize: %d",
+                                       (currentPhotoIndex+1), photoQueue.size(), photoHistory.size()));
 
         nextGroup().getFrame().setAlpha(0f);
 
         RequestOptions options = new RequestOptions()
             .fitCenter();
         try {
+            Log.i("Display", String.format("showing photo: %s", nextPhoto.getUrl()));
             Glide.with(photoFrameActivity)
                 .asBitmap()
                 .load(nextPhoto.getUrl())
