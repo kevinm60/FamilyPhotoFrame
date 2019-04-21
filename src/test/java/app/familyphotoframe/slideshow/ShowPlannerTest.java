@@ -11,12 +11,9 @@ import java.util.Date;
 import java.util.Calendar;
 import java.util.Comparator;
 import java.text.DecimalFormat;
+import java.util.Random;
 
 import org.junit.*;
-// import org.junit.runner.RunWith;
-// import org.powermock.core.classloader.annotations.PrepareForTest;
-// import org.powermock.modules.junit4.PowerMockRunner;
-// import org.powermock.api.mockito.PowerMockito;
 import org.mockito.MockitoAnnotations;
 import org.mockito.Mock;
 import static org.junit.Assert.*;
@@ -29,14 +26,24 @@ import app.familyphotoframe.repository.PhotoCollection;
 import app.familyphotoframe.PhotoFrameActivity;
 import app.familyphotoframe.exception.DiscoveryFailureException;
 
-// @RunWith(PowerMockRunner.class)
-public class ShowPlannerTest {
-    @Mock
-    PhotoCollection mockPhotoCollection;
+// run with "gradle testDebug --info"
+// gradle will only run tests if the test class has changed
 
+public class ShowPlannerTest {
+    // miliseconds per day
+    private static final long MS_PER_DAY = 60 * 60 * 24 * 1000;
+
+    private static final int NUM_PHOTOS_PER_CONTACT = 120;
+    private static final int NUM_ITERATIONS = 10000;
+    private static final int NUM_PHOTOS_PER_ITERATION = 30;
+
+    @Mock
+    private PhotoCollection mockPhotoCollection;
 
     /** object under test */
-    ShowPlanner showPlanner;
+    private ShowPlanner showPlanner;
+
+    private Random random = new Random();
 
     @Before
     public void init() {
@@ -49,25 +56,25 @@ public class ShowPlannerTest {
     @Test
     public void photosShownAtExpectedRates() throws DiscoveryFailureException {
 
+        // create contacts
         Contact[] contacts =
             { new Contact("a", "adam", Relationship.SELF),
               new Contact("b", "beth", Relationship.FAMILY),
-              new Contact("c", "carl", Relationship.FRIEND) };
+              new Contact("c", "carl", Relationship.FAMILY),
+              new Contact("d", "don", Relationship.FAMILY),
+              new Contact("e", "erin", Relationship.FRIEND) };
 
-        Date[] dates =
-            { makeDate(0),
-              makeDate(ShowPlanner.recencyThresholds[0]+1),
-              makeDate(ShowPlanner.recencyThresholds[1]+1) };
-
+        // create photos with random dates for each contact
+        Date now = new Date();
         Set<Photo> allPhotos = new HashSet<>();
-
-        int numPhotosPerGroup = 100;
-        for (int i = 0; i<numPhotosPerGroup; ++i) {
-            for (Contact c : contacts) {
-                for (Date d : dates) {
-                    allPhotos.add(new Photo(c.getName() + "_" + d.getTime() + "_" + i,
-                                            null, null, null, c, null, d, null));
-                }
+        for (Contact contact : contacts) {
+            // System.out.println("contact: " + contact);
+            for (int ii = 0; ii<NUM_PHOTOS_PER_CONTACT; ++ii) {
+                int daysAgo = random.nextInt(800);
+                Date date = new Date(now.getTime() - daysAgo * MS_PER_DAY);
+                // System.out.println("  " + daysAgo + " " + date);
+                allPhotos.add(new Photo(contact.getName() + "_" + date.getTime() + "_" + ii,
+                                        null, null, null, contact, null, date, null));
             }
         }
 
@@ -78,93 +85,122 @@ public class ShowPlannerTest {
 
         showPlanner = new ShowPlanner(mockPhotoCollection);
 
-        int numIterations = 10000;
-        int numPhotosPerIteration = 10;
+        // run the ShowPlanner several times and count which photos come up
 
         Map<Photo,PickCounter> pickCount = new HashMap<>();
-        for (int ii=0; ii<numIterations; ii++) {
-            List<Photo> chosenPhotos = showPlanner.getPhotosToSchedule(numPhotosPerIteration);
+        for (Photo photo : allPhotos) {
+            pickCount.put(photo, new PickCounter());
+        }
+        for (int ii=0; ii<NUM_ITERATIONS; ii++) {
+            List<Photo> chosenPhotos = showPlanner.getPhotosToSchedule(NUM_PHOTOS_PER_ITERATION);
             for (Photo photo : chosenPhotos) {
-                if (pickCount.containsKey(photo)) {
-                    pickCount.get(photo).increment();
-                } else {
-                    pickCount.put(photo, new PickCounter());
-                }
+                pickCount.get(photo).increment();
             }
         }
 
-        int numExpectedPhotos = allPhotos.size();
-        int numMissingPhotos = numExpectedPhotos - pickCount.size();
-        if (numMissingPhotos > 0) {
-            System.out.println("FAIL: " + numMissingPhotos + " of " + numExpectedPhotos +
-                               " photos were never shown");
-        } else {
-            System.out.println("PASS: all " + numExpectedPhotos + " photos were shown at least once");
-        }
+        // analyze the results
 
-        int totalNumPicks = 0;
-        int totalNumPicksByRelationship[] = new int[contacts.length];
-        int totalNumPicksByRecency[] = new int[dates.length];
+        // we expect that all photos are shown at least once
+
+        // int numExpectedPhotos = allPhotos.size();
+        // int numMissingPhotos = numExpectedPhotos - pickCount.size();
+        // if (numMissingPhotos > 0) {
+        //     System.out.println("FAIL: " + numMissingPhotos + " of " + numExpectedPhotos +
+        //                        " photos were never shown");
+        // } else {
+        //     System.out.println("PASS: all " + numExpectedPhotos + " photos were shown at least once");
+        // }
+
+        // count how many photos in each group
+        int[][][] numPhotosByGroup = new int[ShowPlanner.numRelationshipIntervals][ShowPlanner.numRecencyIntervals][ShowPlanner.numSeasonalityIntervals];
+        // count how many time each photo is picked by each dimension
+        int[][][] numPicksByGroup = new int[ShowPlanner.numRelationshipIntervals][ShowPlanner.numRecencyIntervals][ShowPlanner.numSeasonalityIntervals];
         for (Map.Entry<Photo,PickCounter> pair : pickCount.entrySet()) {
             Photo photo = pair.getKey();
             int count = pair.getValue().getCounter();
-            int iRelationship = photo.getOwner().getRelationship().getValue();
-            int iRecency;
-            for (iRecency = 0; iRecency < dates.length; ++iRecency) {
-                if (photo.getDateTaken() == dates[iRecency]) {
-                    break;
-                }
-            }
-            totalNumPicks += count;
-            totalNumPicksByRelationship[iRelationship] += count;
-            totalNumPicksByRecency[iRecency] += count;
-        }
-
-        int numExpectedPicks = numIterations * numPhotosPerIteration;
-        if (totalNumPicks != numExpectedPicks) {
-            System.out.println("Warning: totalNumPicks (" + totalNumPicks + ") != " +
-                               " numExpectedPicks(" + numExpectedPicks + "}");
+            int iRelationship = showPlanner.determineRelationship(photo);
+            int iRecency = showPlanner.determineRecency(now, photo);
+            int iSeasonality = showPlanner.determineSeasonality(now, photo);
+            numPhotosByGroup[iRelationship][iRecency][iSeasonality] += 1;
+            numPicksByGroup[iRelationship][iRecency][iSeasonality] += count;
+            // System.out.println(String.format("index: %s [%d,%d,%d]", photo.getOwner().getName(), iRelationship, iRecency, iSeasonality));
         }
 
         DecimalFormat df = new DecimalFormat("#.00");
         final double tolerance = 0.5;
 
-        int totalRelationshipLikelihood = 0;
-        for (int nominalLikelihood : showPlanner.nominalRelationshipLikelihood)
-            totalRelationshipLikelihood += nominalLikelihood;
+        // check that higher nominal relationship likelihood results in more average picks.
+        // counts should be monotonically decreasing as the index decreases for each dimension
+        // System.out.println("self, family, friend");
+        // for (int iRecency=0; iRecency<ShowPlanner.numRecencyIntervals; iRecency++) {
+        //     for (int iSeasonality=0; iSeasonality<ShowPlanner.numSeasonalityIntervals; iSeasonality++) {
+        //         int[] photos = new int[ShowPlanner.numRelationshipIntervals];
+        //         int[] picks = new int[ShowPlanner.numRelationshipIntervals];
+        //         String status = "PASS";
+        //         int lastPickAvg = Integer.MAX_VALUE;
+        //         for (int iRelationship=0; iRelationship<ShowPlanner.numRelationshipIntervals; iRelationship++) {
+        //             int thisPhotoCount = numPhotosByGroup[iRelationship][iRecency][iSeasonality];
+        //             photos[iRelationship] = thisPhotoCount;
+        //             int thisPickCount = numPicksByGroup[iRelationship][iRecency][iSeasonality];
+        //             if (thisPickCount == 0) {
+        //                 continue;
+        //             }
+        //             int thisPickAvg = (int)Math.round((thisPickCount*1.0)/thisPhotoCount);
+        //             picks[iRelationship] = thisPickAvg;
+        //             if (thisPickAvg > lastPickAvg) {
+        //                 status = "FAIL";
+        //                 // System.out.println(String.format("FAIL: numPicksByGroup[%d][%d][%d]=%d, numPicksByGroup[%d][%d][%d]=%d",
+        //                 //                                  iRelationship, iRecency, iSeasonality, thisCount,
+        //                 //                                  iRelationship-1, iRecency, iSeasonality, lastCount));
+        //             }
+        //             lastPickAvg = thisPickAvg;
+        //         }
+        //         int[] margin = new int[ShowPlanner.numRelationshipIntervals];
+        //         for (int ii=0; ii<photos.length; ii++) {
+        //             margin[ii] = photos[ii] - ShowPlanner.nominalRelationshipLikelihood[ii] *
+        //                 ShowPlanner.nominalRecencyLikelihood[iRecency] *
+        //                 ShowPlanner.nominalSeasonalLikelihood[iSeasonality];
+        //         }
+        //         System.out.println(String.format("%s: [*,rec=%d,ses=%d] = %22s %18s %18s", status, iRecency, iSeasonality, Arrays.toString(picks),
+        //                                          Arrays.toString(photos), Arrays.toString(margin)));
+        //     }
+        // }
 
-        for (int i = 0; i < totalNumPicksByRelationship.length; ++i) {
-            double expectedPercentage = 100.0 * showPlanner.nominalRelationshipLikelihood[i] /
-                totalRelationshipLikelihood;
-            double measuredPercentage = 100.0 * totalNumPicksByRelationship[i] / totalNumPicks;
-            if (Math.abs(expectedPercentage - measuredPercentage) < tolerance) {
-                System.out.print("PASS: ");
-            } else {
-                System.out.print("FAIL: ");
+        // check that higher nominal relationship likelihood results in more average picks.
+        // counts should be monotonically decreasing as the index decreases for each dimension
+        System.out.println("sameDay, inSeason, outOfSeason, oppositeSeason");
+        for (int iRelationship=0; iRelationship<ShowPlanner.numRelationshipIntervals; iRelationship++) {
+            for (int iRecency=0; iRecency<ShowPlanner.numRecencyIntervals; iRecency++) {
+                int[] photos = new int[ShowPlanner.numSeasonalityIntervals];
+                int[] picks = new int[ShowPlanner.numSeasonalityIntervals];
+                String status = "PASS";
+                int lastPickAvg = Integer.MAX_VALUE;
+                for (int iSeasonality=0; iSeasonality<ShowPlanner.numSeasonalityIntervals; iSeasonality++) {
+                    int thisPhotoCount = numPhotosByGroup[iRelationship][iRecency][iSeasonality];
+                    photos[iSeasonality] = thisPhotoCount;
+                    int thisPickCount = numPicksByGroup[iRelationship][iRecency][iSeasonality];
+                    if (thisPickCount == 0) {
+                        continue;
+                    }
+                    int thisPickAvg = (int)Math.round((thisPickCount*1.0)/thisPhotoCount);
+                    picks[iSeasonality] = thisPickAvg;
+                    if (thisPickAvg > lastPickAvg) {
+                        status = "FAIL";
+                        // System.out.println(String.format("FAIL: numPicksByGroup[%d][%d][%d]=%d, numPicksByGroup[%d][%d][%d]=%d",
+                        //                                  iRelationship, iRecency, iSeasonality, thisCount,
+                        //                                  iRelationship-1, iRecency, iSeasonality, lastCount));
+                    }
+                    lastPickAvg = thisPickAvg;
+                }
+                int[] margin = new int[ShowPlanner.numSeasonalityIntervals];
+                for (int ii=0; ii<photos.length; ii++) {
+                    margin[ii] = photos[ii] - ShowPlanner.nominalRelationshipLikelihood[iRelationship] *
+                        ShowPlanner.nominalRecencyLikelihood[iRecency] *
+                        ShowPlanner.nominalSeasonalLikelihood[ii];
+                }
+                System.out.println(String.format("%s: [rel=%d,rec=%d,ses=*] = %22s %18s %18s", status, iRelationship, iRecency, Arrays.toString(picks),
+                                                 Arrays.toString(photos), Arrays.toString(margin)));
             }
-            System.out.println(df.format(measuredPercentage) + "% of the photos were taken by " +
-                               contacts[i].getName() + ". " + df.format(expectedPercentage) + "% expected");
-
-            // TODO: print median/min/max count of a photo
-        }
-
-        int totalRecencyLikelihood = 0;
-        for (int nominalLikelihood : showPlanner.nominalRecencyLikelihood)
-            totalRecencyLikelihood += nominalLikelihood;
-
-        for (int i = 0; i < totalNumPicksByRecency.length; ++i) {
-            double expectedPercentage = 100.0 * showPlanner.nominalRecencyLikelihood[i] /
-                totalRecencyLikelihood;
-            double measuredPercentage = 100.0 * totalNumPicksByRecency[i] / totalNumPicks;
-            if (Math.abs(expectedPercentage - measuredPercentage) < tolerance) {
-                System.out.print("PASS: ");
-            } else {
-                System.out.print("FAIL: ");
-            }
-            System.out.println(df.format(measuredPercentage) + "% of the photos were taken on " +
-                               dates[i] + ". " + df.format(expectedPercentage) + "% expected");
-
-            // TODO: print median/min/max count of a photo
         }
     }
 
@@ -178,7 +214,7 @@ public class ShowPlannerTest {
         private int counter;
 
         public PickCounter() {
-            counter = 1;
+            counter = 0;
         }
 
         public int getCounter() {

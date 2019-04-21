@@ -1,11 +1,12 @@
 package app.familyphotoframe.slideshow;
 
 import java.lang.Math;
+import java.util.Date;
 import java.util.Calendar;
+import java.util.concurrent.TimeUnit;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Date;
 import java.util.Set;
 import android.util.Log;
 
@@ -19,12 +20,16 @@ import app.familyphotoframe.exception.DiscoveryFailureException;
  */
 public class ShowPlanner {
 
-    private static final int numRecencyThresholds = 2;
-    static final int recencyThresholds[] = {60, 365}; // days
+    static final int nominalRelationshipLikelihood[] = {5, 3, 1, 0}; // indexed by relationship {self, family, friend, stranger}
+    static final int numRelationshipIntervals = nominalRelationshipLikelihood.length;
 
-    private static final int numRecencyIntervals = numRecencyThresholds + 1;
-    static final int nominalRelationshipLikelihood[] = {5,3,2,0}; // indexed by relationship
-    static final int nominalRecencyLikelihood[] = {5,3,2}; // indexed by recency interval
+    static final int recencyThresholds[] = {60, 365};                // days
+    static final int nominalRecencyLikelihood[] = {5, 3, 1};         // indexed by recency interval {recent, moderately recent, old}
+    static final int numRecencyIntervals = nominalRecencyLikelihood.length;
+
+    static final int seasonalityThresholds[] = {1, 30, 90};          // days
+    static final int nominalSeasonalLikelihood[] = {5, 3, 1, 0};     // indexed by calendar distance {same day, in season, out of season, opposite season}
+    static final int numSeasonalityIntervals = nominalSeasonalLikelihood.length;
 
     private class IndexElement {
         public List<Photo> photos;
@@ -35,7 +40,7 @@ public class ShowPlanner {
     private PhotoCollection photoCollection;
 
     /** array of lists of photos indexed by relationship and recency */
-    private IndexElement[][] photoIndex;
+    private IndexElement[][][] photoIndex;
 
     /** time of last indexing request */
     private Date timeOfLastIndex;
@@ -61,42 +66,67 @@ public class ShowPlanner {
         Date now = new Date();
         timeOfLastIndex = now;
 
-        // Determine recency cutoff dates (i.e. photos more recent than the cutoff are within
-        // the recency interval with the same index)
-        Date recencyCutoffDates[] = new Date[recencyThresholds.length];
-        for (int i = 0; i < recencyCutoffDates.length; ++i) {
-            Calendar calendar = Calendar.getInstance();
-            calendar.setTime(now);
-            calendar.add(Calendar.DATE, -recencyThresholds[i]);
-            recencyCutoffDates[i] = new Date(calendar.getTime().getTime());
-        }
-
-        // Create photo index indexed by relationship and recency
-        photoIndex = new IndexElement[Relationship.length][numRecencyIntervals];
+        // Create photo index indexed by relationship, recency, seasonality
+        photoIndex = new IndexElement[numRelationshipIntervals][numRecencyIntervals][numSeasonalityIntervals];
         for (int iRelationship = 0; iRelationship < photoIndex.length; ++iRelationship) {
             for (int iRecency = 0; iRecency < photoIndex[iRelationship].length; ++iRecency) {
-                IndexElement group = new IndexElement();
-                group.photos = new LinkedList<Photo>();
-                group.likelihood =
+                for (int iSeasonality = 0; iSeasonality < photoIndex[iRelationship][iRecency].length; ++iSeasonality) {
+                    IndexElement group = new IndexElement();
+                    group.photos = new LinkedList<Photo>();
+                    group.likelihood =
                         nominalRelationshipLikelihood[iRelationship] *
-                        nominalRecencyLikelihood[iRecency];
-                photoIndex[iRelationship][iRecency] = group;
+                        nominalRecencyLikelihood[iRecency] *
+                        nominalSeasonalLikelihood[iSeasonality];
+                    photoIndex[iRelationship][iRecency][iSeasonality] = group;
+                }
             }
         }
 
         // Organize photos into groups
         for (Photo photo : allPhotos) {
-            int iRelationship = photo.getOwner().getRelationship().getValue();
-            int iRecency = 0;
-            for (; iRecency < recencyCutoffDates.length; ++iRecency) {
-                if (photo.getDateTaken().after(recencyCutoffDates[iRecency])) {
-                    break;
-                }
-            }
-            photoIndex[iRelationship][iRecency].photos.add(photo);
+            int iRelationship = determineRelationship(photo);
+            int iRecency = determineRecency(now, photo);
+            int iSeasonality = determineSeasonality(now, photo);
+            photoIndex[iRelationship][iRecency][iSeasonality].photos.add(photo);
         }
     }
 
+    int determineRelationship(final Photo photo) {
+        return photo.getOwner().getRelationship().getValue();
+    }
+
+    int determineRecency(final Date now, final Photo photo) {
+        long diffInMillis = Math.abs(now.getTime() - photo.getDateTaken().getTime());
+        long diffInDays = TimeUnit.DAYS.convert(diffInMillis, TimeUnit.MILLISECONDS);
+        int iRecency = 0;
+        for (; iRecency < recencyThresholds.length; ++iRecency) {
+            if (diffInDays < recencyThresholds[iRecency]) {
+                break;
+            }
+        }
+        return iRecency;
+    }
+
+    int determineSeasonality(final Date now, final Photo photo) {
+        int currentYear = calFromDate(now).get(Calendar.YEAR);
+        Calendar photoCalSameYear = calFromDate(photo.getDateTaken());
+        photoCalSameYear.set(Calendar.YEAR, currentYear);
+        long diffInMillisSameYear = Math.abs(now.getTime() - photoCalSameYear.getTimeInMillis());
+        long diffInDaysSameYear = TimeUnit.DAYS.convert(diffInMillisSameYear, TimeUnit.MILLISECONDS);
+        int iSeasonality = 0;
+        for (; iSeasonality < seasonalityThresholds.length; ++iSeasonality) {
+            if (diffInDaysSameYear%365 < seasonalityThresholds[iSeasonality]) {
+                break;
+            }
+        }
+        return iSeasonality;
+    }
+
+    Calendar calFromDate(Date date) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(date.getTime());
+        return calendar;
+    }
 
     /**
      * return a randomized list of photos based on distribution preferences
@@ -116,14 +146,16 @@ public class ShowPlanner {
         // the desired distribution
         for (int iRelationship = 0; iRelationship < photoIndex.length; ++iRelationship) {
             for (int iRecency = 0; iRecency < photoIndex[iRelationship].length; ++iRecency) {
-                IndexElement group = photoIndex[iRelationship][iRecency];
-                // If there are more than enough photos in a group, shuffle the photos
-                // and select from the beginning. Otherwise select them all.
-                if (group.photos.size() > group.likelihood) {
-                    Collections.shuffle(group.photos);
-                    selectedPhotos.addAll(group.photos.subList(0,group.likelihood));
-                } else {
-                    selectedPhotos.addAll(group.photos);
+                for (int iSeasonality = 0; iSeasonality < photoIndex[iRelationship][iRecency].length; ++iSeasonality) {
+                    IndexElement group = photoIndex[iRelationship][iRecency][iSeasonality];
+                    // If there are more than enough photos in a group, shuffle the photos
+                    // and select from the beginning. Otherwise select them all.
+                    if (group.photos.size() > group.likelihood) {
+                        Collections.shuffle(group.photos);
+                        selectedPhotos.addAll(group.photos.subList(0,group.likelihood));
+                    } else {
+                        selectedPhotos.addAll(group.photos);
+                    }
                 }
             }
         }
