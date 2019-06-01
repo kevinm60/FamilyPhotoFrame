@@ -139,8 +139,9 @@ public class FlickrClient extends OAuthBaseClient {
         RequestParams params = makeRequestParams();
         params.put("method", "flickr.people.getPhotos");
         params.put("user_id", contact.getUserId());
+        params.put("safe_search", 1);
         params.put("content_type", 1);
-        params.put("extras", "date_taken,geo");
+        params.put("extras", "date_taken,geo,original_format");
         params.put("per_page", 500);
 
         String apiUrl = getApiUrl("");
@@ -283,12 +284,18 @@ public class FlickrClient extends OAuthBaseClient {
                     JSONArray jsonPhotos = json.getJSONObject(FLICKR_PHOTOS_FIELD).getJSONArray(FLICKR_PHOTO_FIELD);
                     for (int ii=0; ii<jsonPhotos.length(); ii++) {
                         JSONObject jsonPhoto = jsonPhotos.getJSONObject(ii);
+
+                        String format = jsonPhoto.getString("originalformat");
+                        if (!"png".equalsIgnoreCase(format) && !"jpg".equalsIgnoreCase(format)) {
+                            Log.d("FlickrClient", "skipping format: " + format);
+                            continue;
+                        }
+
                         String id = jsonPhoto.getString(FLICKR_ID_FIELD);
                         String secret = jsonPhoto.getString(FLICKR_SECRET_FIELD);
                         String serverId = jsonPhoto.getString(FLICKR_SERVERID_FIELD);
                         String farmId = jsonPhoto.getString(FLICKR_FARMID_FIELD);
                         Contact owner = photoCollection.getContact(jsonPhoto.getString(FLICKR_OWNER_FIELD));
-
                         String dateTakenString = jsonPhoto.getString(FLICKR_DATETAKEN_FIELD);
                         Date dateTaken = DATE_FORMAT.parse(dateTakenString);
                         String title = jsonPhoto.getString(FLICKR_TITLE_FIELD);
