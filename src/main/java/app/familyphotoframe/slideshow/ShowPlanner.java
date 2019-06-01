@@ -23,7 +23,7 @@ public class ShowPlanner {
     static final int nominalRelationshipLikelihood[] = {5, 3, 1, 0}; // indexed by relationship {self, family, friend, stranger}
     static final int numRelationshipIntervals = nominalRelationshipLikelihood.length;
 
-    static final int recencyThresholds[] = {60, 365};                // days
+    static final int recencyThresholds[] = {90, 365};                // days
     static final int nominalRecencyLikelihood[] = {5, 3, 1};         // indexed by recency interval {recent, moderately recent, old}
     static final int numRecencyIntervals = nominalRecencyLikelihood.length;
 

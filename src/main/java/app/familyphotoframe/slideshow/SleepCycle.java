@@ -23,7 +23,7 @@ public class SleepCycle {
     final private PhotoCollection photoCollection;
 
     final private int WAKE_HOUR = 7;  // 7 am
-    final private int SLEEP_HOUR = 21; // 9 pm
+    final private int SLEEP_HOUR = 22; // 10 pm
 
     public SleepCycle(final Window window, final Handler uiHandler,
                       final Display display, final PhotoCollection photoCollection) {
