@@ -108,11 +108,7 @@ public class ShowPlanner {
     }
 
     int determineSeasonality(final Date now, final Photo photo) {
-        int currentYear = calFromDate(now).get(Calendar.YEAR);
-        Calendar photoCalSameYear = calFromDate(photo.getDateTaken());
-        photoCalSameYear.set(Calendar.YEAR, currentYear);
-        long diffInMillisSameYear = Math.abs(now.getTime() - photoCalSameYear.getTimeInMillis());
-        long diffInDaysSameYear = TimeUnit.DAYS.convert(diffInMillisSameYear, TimeUnit.MILLISECONDS);
+        long diffInDaysSameYear = photo.computeSameYearDaysDifference(now);
         int iSeasonality = 0;
         for (; iSeasonality < seasonalityThresholds.length; ++iSeasonality) {
             if (diffInDaysSameYear%365 < seasonalityThresholds[iSeasonality]) {
@@ -120,12 +116,6 @@ public class ShowPlanner {
             }
         }
         return iSeasonality;
-    }
-
-    Calendar calFromDate(Date date) {
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTimeInMillis(date.getTime());
-        return calendar;
     }
 
     /**

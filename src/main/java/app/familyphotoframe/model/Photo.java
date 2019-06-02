@@ -2,6 +2,8 @@ package app.familyphotoframe.model;
 
 import java.util.List;
 import java.util.Date;
+import java.util.Calendar;
+import java.util.concurrent.TimeUnit;
 
 public class Photo {
     private String id;
@@ -94,6 +96,27 @@ public class Photo {
     public String getUrl() {
         return String.format("https://farm%s.staticflickr.com/%s/%s_%s.jpg",
                              farmId, serverId, id, secret);
+    }
+
+    /**
+     * compute the number of days difference between two dates, as if they were in the same year.
+     */
+    public int computeSameYearDaysDifference(final Date now) {
+        int photoDate = calFromDate(dateTaken).get(Calendar.DAY_OF_YEAR);
+        int currentDate = calFromDate(now).get(Calendar.DAY_OF_YEAR);
+        return Math.abs(currentDate - photoDate);
+    }
+
+    public int computeDifferenceInYears(final Date now) {
+        int photoYear = calFromDate(dateTaken).get(Calendar.YEAR);
+        int currentYear = calFromDate(now).get(Calendar.YEAR);
+        return currentYear - photoYear;
+    }
+
+    private Calendar calFromDate(Date date) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(date.getTime());
+        return calendar;
     }
 
     public String toString() {

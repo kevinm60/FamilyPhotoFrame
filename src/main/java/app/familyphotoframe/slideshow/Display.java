@@ -1,6 +1,7 @@
 package app.familyphotoframe.slideshow;
 
 import java.util.LinkedList;
+import java.util.Date;
 import java.text.SimpleDateFormat;
 import android.util.Log;
 import android.app.Activity;
@@ -8,6 +9,8 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.os.Handler;
 import android.content.Intent;
+import android.text.Html;
+import android.text.Spanned;
 import android.view.View;
 import android.view.ViewGroup;
 import android.animation.Animator;
@@ -275,11 +278,12 @@ public class Display implements Runnable {
         return isCurrentA? groupB : groupA;
     }
 
-    private String makePhotoCaption(final Photo photo) {
-        return String.format("%s\n\n%s\n%s\n%s\n", photo.getTitle(),
-                             photo.getOwner().getName(),
-                             dateFormat.format(photo.getDateTaken()),
-                             photo.getLocation()==null ? "" : photo.getLocation());
+    private Spanned makePhotoCaption(final Photo photo) {
+        return Html.fromHtml(String.format("%s<br/><br/>%s<br/>%s<br/>%s",
+                                           photo.getTitle(),
+                                           "Taken by: " + photo.getOwner().getName(),
+                                           "Date taken: " + getDateString(photo),
+                                           photo.getLocation()==null ? "" : "Location: " + photo.getLocation()));
     }
 
     private void crossFade(final ViewGroup currentPhotoView, final ViewGroup nextPhotoView) {
@@ -292,6 +296,35 @@ public class Display implements Runnable {
             .alpha(0f)
             .setDuration(FADE_DURATION)
             .setListener(null);
+    }
+
+    private String getDateString(final Photo photo) {
+        Date now = new Date();
+        int diffInDaysSameYear = photo.computeSameYearDaysDifference(now);
+        Log.i("Display", "now: " + dateFormat.format(now) + " dateTaken: " + dateFormat.format(photo.getDateTaken())
+              + " diff: " + diffInDaysSameYear);
+        if (diffInDaysSameYear < -1 || diffInDaysSameYear > 1) {
+            return dateFormat.format(photo.getDateTaken());
+        } else {
+            String dayString;
+            switch (diffInDaysSameYear) {
+            case -1: dayString = "Tomorrow"; break;
+            case 0: dayString = "Today"; break;
+            default: dayString = "Yesterday";
+            }
+            Log.i("Display", "dayString: " + dayString + " " + diffInDaysSameYear);
+            long diffInYears = photo.computeDifferenceInYears(now);
+            String yearsString;
+            if (diffInYears == 0) {
+                yearsString = "";
+            } else if (diffInYears == 1) {
+                yearsString = ", last year";
+            } else {
+                yearsString = String.format(", %d years ago", diffInYears);
+            }
+            Log.i("Display", "diffInYears: " + yearsString + " " + diffInYears);
+            return String.format("<big><font color=\"yellow\">%s</font></big>%s", dayString, yearsString);
+        }
     }
 
     public void shareCurrentPhoto() {
