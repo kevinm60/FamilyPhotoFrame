@@ -61,7 +61,7 @@ public class FlickrClient extends OAuthBaseClient {
     private static final String FLICKR_DATETAKEN_FIELD = "datetaken";
     private static final String FLICKR_WOEID_FIELD = "woeid";
     private static final String FLICKR_PLACE_FIELD = "place";
-    private static final String FLICKR_NAME_FIELD = "name";
+    private static final String FLICKR_WOE_NAME_FIELD = "woe_name";
     private static final String FLICKR_TITLE_FIELD = "title";
     private static final String FLICKR_DESCRIPTION_FIELD = "description";
     private static final String FLICKR_CONTENT_FIELD = "_content";
@@ -152,7 +152,7 @@ public class FlickrClient extends OAuthBaseClient {
     }
 
     public void lookupPlace(final Photo photo) {
-        if (photo.getLocation() != null || photo.getWoeId() == null) {
+        if (photo.getLocation() != null || photo.getWoeId() == null || photo.getWoeId().isEmpty()) {
             Log.d("FlickrClient", "no need to lookup place: hasLocation? " + (photo.getLocation()!=null)+ ", missing woeid? " +(photo.getWoeId()==null));
             return;
         }
@@ -350,9 +350,9 @@ public class FlickrClient extends OAuthBaseClient {
         @Override
         public void onSuccess(int statusCode, Header[] headers, JSONObject json) {
             try {
-                // Log.d("FlickrClient", "got place: " + json);
-                if (json.has(FLICKR_PLACE_FIELD) && json.getJSONObject(FLICKR_PLACE_FIELD).has(FLICKR_NAME_FIELD)) {
-                    String location = json.getJSONObject(FLICKR_PLACE_FIELD).getString(FLICKR_NAME_FIELD);
+                // Log.d("FlickrClient", "got place obj: " + json);
+                if (json.has(FLICKR_PLACE_FIELD) && !json.getJSONObject(FLICKR_PLACE_FIELD).isNull(FLICKR_WOE_NAME_FIELD)) {
+                    String location = json.getJSONObject(FLICKR_PLACE_FIELD).getString(FLICKR_WOE_NAME_FIELD);
                     Log.i("FlickrClient", "got place: " + location);
                     placesCache.put(photo.getWoeId(), location);
                     photo.setLocation(location);
