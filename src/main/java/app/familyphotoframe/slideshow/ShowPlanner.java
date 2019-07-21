@@ -28,7 +28,7 @@ public class ShowPlanner {
     static final int numRecencyIntervals = nominalRecencyLikelihood.length;
 
     static final int seasonalityThresholds[] = {1, 30, 90};          // days
-    static final int nominalSeasonalLikelihood[] = {5, 3, 1, 0};     // indexed by calendar distance {same day, in season, out of season, opposite season}
+    static final int nominalSeasonalLikelihood[] = {8, 4, 2, 1};     // indexed by calendar distance {same day, in season, out of season, opposite season}
     static final int numSeasonalityIntervals = nominalSeasonalLikelihood.length;
 
     private class IndexElement {
